@@ -1,5 +1,5 @@
 CAMLC = ocamlc
-CAMLOPT = ocamlopt -inline 20 -nodynlink -unsafe -noassert
+CAMLOPT = ocamlopt -p -inline 20 -nodynlink -unsafe -noassert
 CAMLDOC = ocamldoc -html -keep-code
 MKTOP = ocamlmktop
 #CAMLLEX = ocamllex

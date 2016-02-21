@@ -20,9 +20,9 @@ let make n edge =
 	 "Graphs.make : edge (%d, %d) out of range (size is %d)" i j n) in
   let rec aux = function
     | ((i, j) as a)::b::q ->
-      if a=b then failwith
-	(Printf.sprintf "Graph.make : edge (%d, %d) duplicated" i j)
-      else aux (b::q)
+       if a=b then failwith
+	 (Printf.sprintf "Graph.make : edge (%d, %d) duplicated" i j)
+       else aux (b::q)
     | _ -> () in
   List.iter check_edge edge;
   aux (List.sort compare (List.map normalize_edge edge));
