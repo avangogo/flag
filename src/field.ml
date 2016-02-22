@@ -28,3 +28,19 @@ struct
   let minus = (~-.)
   let print = string_of_float
 end
+
+module Num : S with type t = Num.num =
+struct
+  open Num
+  type t = num
+  let int i = Int i
+  let zero = int 0
+  let rat r =
+    (int (Rational.nom r)) // (int (Rational.denom r))
+  let mul = ( */ )
+  let div = ( // )
+  let add = ( +/ )
+  let sub = ( -/ )
+  let minus = minus_num
+  let print = string_of_num
+end

@@ -1,5 +1,5 @@
 CAMLC = ocamlc
-CAMLOPT = ocamlopt -p -inline 20 -nodynlink -unsafe -noassert
+CAMLOPT = ocamlopt -p -inline 20 -nodynlink -unsafe # -noassert
 CAMLDOC = ocamldoc -html -keep-code
 MKTOP = ocamlmktop
 #CAMLLEX = ocamllex
@@ -12,7 +12,7 @@ COMMANDS = \
 #	   -package camomile \
 #	   -linkpkg 
 
-LIBS = graphics.cma unix.cma
+LIBS = nums.cma graphics.cma unix.cma
 LIBS_OPT = $(patsubst %.cma,%.cmxa,$(LIBS))
 
 EXEC = toto

@@ -21,9 +21,17 @@ sig
   val p2 : int -> Flag.t -> Flag.t -> Flag.t -> Rational.t
   val q : int -> Flag.t -> Rational.t
 
+  (** Optimized functions *)
+    
   val p2_tabulate : int -> Flag.t array ->
-    Flag.t array -> Flag.t array -> Rational.t array array array
+    Flag.t array -> Flag.t array -> int array array array
+  val p_tabulate : int -> Flag.t array -> Flag.t array -> int array array
 
+  val q_nom : int -> Flag.t -> int
+    
+  val p_denom : int -> int -> int -> int
+  val p2_denom : int -> int -> int -> int
+  val q_denom : int -> int -> int
 
   (** {8 Flags generation } *)
   val span_flags : int -> Flag.t list

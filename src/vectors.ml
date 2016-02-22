@@ -24,10 +24,10 @@ struct
   module S = Storage.Make (Flag)
 
   (*  *)
-  let get_q b = Array.map F.rat (S.get_q b)
+  let get_q b = Array.map F.int (S.get_q b) (* FIXME *)
   let get_untype = S.get_untype
-  let get_p b1 b2 = matrix_map F.rat (S.get_p b1 b2)
-  let get_p2 b1 b2 b3 = Array.map (matrix_map F.rat) (S.get_p2 b1 b2 b3)
+  let get_p b1 b2 = matrix_map F.int (S.get_p b1 b2) (* FIXME *)
+  let get_p2 b1 b2 b3 = Array.map (matrix_map F.int) (S.get_p2 b1 b2 b3) (* FIXME *)
   let get_size = S.get_size
   let get_basis = S.get_basis
     
@@ -35,25 +35,28 @@ struct
   (* removing the type *)
   let raw_untype b v =
     let q = get_q b
+    and denom = S.get_q_denom b
     and untype = get_untype b
     and n0 = get_size (untype_basis b) in
     let res = Array.make n0 F.zero in
     for i = 0 to (Array.length v) - 1 do
       res.(untype.(i)) <- F.add res.(untype.(i)) (F.mul q.(i) v.(i))
     done;
-    res
+    Array.map (fun x -> F.div x (F.int denom)) res
       
   let untype a =
     { name = option_map (sprintf "[| %s |]") a.name;
       expr = Unlab a.expr;
       basis = untype_basis a.basis;
       vect = raw_untype a.basis a.vect }
-
+      
   (* change of basis *)
   let raw_expand b1 b2 v =
-    let p = get_p b1 b2 in
-    (multiply_matrix F.zero F.add F.mul [|v|] p).(0)
-
+    let p = S.get_p b1 b2 in
+    let denom = S.get_p_denom b1 b2 in
+    let scaled_v = Array.map (fun x -> F.div x (F.int denom)) v in
+    apply_int_matrix F.int F.zero F.add F.mul p scaled_v
+    
   let expand new_basis a =
     { name = a.name;
       expr = a.expr;
@@ -63,9 +66,14 @@ struct
   (*  *)
   let raw_multiply b1 b2 v1 v2 =
     let b = mul_basis b1 b2 in
-    let p2 = get_p2 b1 b2 b in
+    let p2 = S.get_p2 b1 b2 b in
     let p2_inv = matrix_array_of_array_matrix p2 in
-    Array.map (fun m -> bilinear_form F.zero F.add F.mul v1 m v2) p2_inv
+    let denom = S.get_p2_denom b1 b2 b in
+    Array.map (fun m ->
+      F.div
+	(bilinear_form_int F.int F.zero F.add F.mul v1 m v2)
+	(F.int denom)
+    ) p2_inv
       
   let multiply a b =
     { name = option_map2 (sprintf "%s*%s") a.name b.name;
@@ -87,6 +95,7 @@ struct
     array_map2 F.add v1 v2
 
   let add a b =
+    assert (a.basis = b.basis);
     { name = option_map2 (sprintf "(%s + %s)") a.name b.name;
       expr = Plus (a.expr, b.expr);
       basis = a.basis;
@@ -96,6 +105,7 @@ struct
     array_map2 F.sub v1 v2
 
   let sub a b =
+    assert (a.basis = b.basis);
     { name = option_map2 (sprintf "(%s - %s)") a.name b.name;
       expr = Plus (a.expr, Minus b.expr);
       basis = a.basis;

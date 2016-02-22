@@ -32,9 +32,9 @@ let load_or_create create filename =
     Print.verbose (Printf.sprintf "\nComputing file %s\n" filename);
     let obj = create () in
     Print.verbose (Printf.sprintf "Writing in file %s... " filename);
-    flush stdout;
     save_marshal filename obj;
     Print.verbose " Done\n";
+    flush stdout;
     obj
 
 (*let table = Hashtbl.create 10
@@ -108,6 +108,16 @@ struct
   module A = Algebra.Make (Flag)
   open A
 
+  (* single computations *)
+  let get_p_denom id1 id2 =
+    p_denom id1.typeSize id1.flagSize id2.flagSize
+
+  let get_p2_denom id1 _ id3 =
+    p2_denom id1.typeSize id1.flagSize id3.flagSize
+      
+  let get_q_denom id =
+    q_denom id.typeSize id.flagSize
+  
   (* specific basis *)
   let basis_id size typeSize typeId =
     {
@@ -123,6 +133,9 @@ struct
   let check b =
     b.flagType = Flag.name
 
+  let same_type b1 b2 =
+    ( b1.typeSize = b2.typeSize ) && ( b1.typeId = b2.typeId )
+    
   (* tabulating recipes *)
 
   let rec make_basis id =
@@ -146,16 +159,21 @@ struct
       let k = id1.typeSize
       and b1 = get_basis id1
       and b2 = get_basis id2 in
-      Array.map (fun h -> Array.map (p k h) b2) b1
+      p_tabulate k b1 b2
+    (* Array.map (fun h -> Array.map (p k h) b2) b1 *) (* TO BE REMOVED *)
     | k when k > 1 -> 
-      let id3 = basis_id (id1.flagSize+1) id1.typeId id1.typeSize in
+      let id3 = basis_id (id1.flagSize+1) id1.typeSize id1.typeId in
       let p13 = get_p id1 id3
       and p32 = get_p id3 id2 in
-      multiply_matrix Rational.zero Rational.add Rational.mul p13 p32
+      let scale =
+	((get_p_denom id1 id3)*(get_p_denom id3 id2))/(get_p_denom id1 id2) in
+      let res = multiply_matrix 0 ( + ) ( * ) p32 p13 in
+      matrix_map (fun x -> x / scale) res
     | _ -> failwith "make_p : bad arguments"    
 
   and get_p id1 id2 =
     assert ( check id1 && check id2 );
+    assert ( same_type id1 id2 );
     load_or_create (fun () -> make_p id1 id2) (p_name id1 id2)
 
   let make_p2 id1 id2 id3 =
@@ -165,14 +183,17 @@ struct
     and b3 = get_basis id3 in
     p2_tabulate k b1 b2 b3
 
-  let get_p2 id1 id2 id3 =
+  let get_p2 id1 id2 id3 = (* rq : id3 redondant *)
     assert ( check id1 && check id2 && check id3 );
+    assert ( same_type id1 id3 );
+    assert ( same_type id2 id3 );
+    assert ( id3 = mul_basis id1 id2 );
     load_or_create (fun () -> make_p2 id1 id2 id3) (p2_name id1 id2 id3)
       
   let make_q id =
     let k = id.typeSize
     and b = get_basis id in
-    Array.map (q k) b
+    Array.map (q_nom k) b
       
   let get_q id =
     assert (check id);

@@ -11,7 +11,7 @@ module Solve = Solve.Make (Trianglefree)
 open Solve
 open I
 
-let b = S.untyped_basis_id 6
+let b = S.untyped_basis_id 4
   
 let c0 = 0.348
 

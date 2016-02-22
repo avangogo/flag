@@ -43,6 +43,7 @@ let matrix_array_of_array_matrix mat =
 let apply_matrix (zero : 'a) (add : 'a->'a ->'a) (mul : 'a->'a->'a) a v =
   let n = Array.length a
   and m = Array.length a.(0) in
+  assert ( Array.length v = m );
   let res = Array.make n zero in
   for i = 0 to n - 1 do
     for j = 0 to m - 1 do
@@ -51,8 +52,22 @@ let apply_matrix (zero : 'a) (add : 'a->'a ->'a) (mul : 'a->'a->'a) a v =
   done;
   res
 
+let apply_int_matrix (int : int -> 'a) (zero : 'a) (add : 'a->'a ->'a) (mul : 'a->'a->'a) (a : int array array) v =
+  let n = Array.length a
+  and m = Array.length a.(0) in
+  assert ( Array.length v = m );
+  let res = Array.make n zero in
+  for i = 0 to n - 1 do
+    for j = 0 to m - 1 do
+      res.(i) <- add res.(i) (mul (int a.(i).(j)) v.(j))
+    done
+  done;
+  res
+  
+    
 (** [apply_matrix zero add mul m1 m2] as for {!apply_matrix}. *)
 let multiply_matrix (zero : 'a) (add : 'a -> 'a -> 'a) (mul : 'a -> 'a -> 'a) a b =
+  assert (Array.length a.(0) = Array.length b);
   let n = Array.length a
   and l = Array.length b
   and m = Array.length b.(0) in
@@ -70,6 +85,19 @@ let bilinear_form zero add mul a m b =
   let apply = apply_matrix zero add mul
   and multiply = multiply_matrix zero add mul in
   (apply (multiply [|a|] m) b).(0)
+
+let bilinear_form_int int zero add mul u a v =
+  let n = Array.length a
+  and m = Array.length a.(0) in
+  assert ( Array.length v = m && Array.length u = n );
+  let res = ref zero in
+  for i = 0 to n - 1 do
+    for j = 0 to m - 1 do
+      res := add !res (mul (int a.(i).(j)) (mul  u.(i) v.(j)))
+    done
+  done;
+  !res
+    
 
 let matrix_map f m = Array.map (Array.map f) m
 

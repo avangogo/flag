@@ -55,6 +55,7 @@ let denom_q b =
   (Combinatoric.binomial b.typeSize b.flagSize) *
     (Combinatoric.fact b.typeSize)
 
+
 let denom_p b1 b2 =
   let typeSize = b1.typeSize in
   Combinatoric.binomial (b1.flagSize - typeSize) (b2.flagSize - typeSize)
@@ -62,6 +63,7 @@ let denom_p b1 b2 =
 let denom_p2_square b =
   let x = b.flagSize - b.typeSize in
   Combinatoric.binomial x (2*x)
+
 
 (* optimized bracket operator *)
 let int_untype n q untype v =
@@ -81,12 +83,18 @@ struct
   module S = Storage.Make ( Flag )
   open S
 
-  let opt_untype b untype d_q int_q d v =
+
+(*  let opt_untype b untype d_q int_q d v =
     let n = get_size (untype_basis b) in
     let int_v = rat_to_int_array d v in
     let int_res = int_untype n int_q untype int_v in
     let d_res = d_q * d in
-    Array.map (fun i -> Rational.make i d_res) int_res
+    Array.map (fun i -> Rational.make i d_res) int_res *)
+
+  let opt_untype b untype q v =
+    let n = get_size (untype_basis b) in
+    let res = int_untype n q untype v in
+    Array.map Rational.int res
 
   (* bracketed multiplication table *)
   let mul_table b =
@@ -95,11 +103,12 @@ struct
     (* *)
     let p2 = get_p2 b b b2 in
     (* precomputed data *)
-    let d =  denom_p2_square b in
-    let d_q = denom_q b2 in
-    let int_q = rat_to_int_array d_q (get_q b2) in
+(*    let d =  denom_p2_square b in
+      let d_q = denom_q b2 in
+      let int_q = rat_to_int_array d_q (get_q b2) in *)
+    let q = get_q b2 in
     let untype = get_untype b2 in
-    matrix_map (opt_untype b2 untype d_q int_q d) p2
+    matrix_map (opt_untype b2 untype q) p2
       
   (* returns bflags=[|A0,..,Am-1|] such that Ai*X (coefficient by coefficient multiplication) is the coefficient of Fi in the Cauchy-Schwarz inequality with sdp matrix X *)
   let cs_block b =

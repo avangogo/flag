@@ -149,7 +149,8 @@ struct
     !res
       
   (* ** improved normal form algorithm ** *)
-      
+
+  (* largest common prefix of u and v (first common ancestor) *)
   let fca u v =
     let i = ref 0 in
     while u.(!i) = v.(!i) do incr i done;
@@ -209,8 +210,10 @@ struct
       
   (************ Razborov functions **************)
       
-  (* ** combinatoric ** *)
-      
+  (* ** combinatorics ** *)
+
+  (* compute the increasing injection from [Array.length p] to [n] *)
+  (* following p in lexicographic order *)
   let next n p =
     let k = Array.length p in
     let i = ref (k - 1) in
@@ -246,7 +249,12 @@ struct
   (* apply f to the ((n-k+1)*..(n-1)*n) injections from [k] to [n] *)
   let iter_on_injections f k n =
     iter_on_subsets (iter_on_permutations f k) 0 k n
-      
+
+  (* select is an increasing injection from [k] to [n] fixing [sigma],
+     it represent a subset of [n] containing [sigma] (which is precisely its image).
+     complementary n sigma select returns the increasing injection
+     from [n - k + sigma] to [n] fixing [sigma] representing the compementary of
+     the image of select union [sigma] *)
   let complementary n sigma select =
     let k = Array.length select in
     let res = Array.make (n - k + sigma) 0 in
@@ -309,7 +317,8 @@ struct
   let total =
     (binomial (k - sigma) (n - sigma)) * (binomial (k' - sigma) (n - k)) in
   Rational.make !count total
-    
+
+  (* optimized versions *)
   let p2_tabulate sigma h1_array h2_array g_array =
     let k1 = Flag.size h1_array.(0)
     and k2 = Flag.size h2_array.(0)
@@ -332,19 +341,46 @@ struct
 	r.(i1).(i2).(i) <- r.(i1).(i2).(i) + 1
       done in
     iter_on_subsets use_map sigma k1 n;
-    let m = binomial (k1 - sigma) (n - sigma) in
-    Array.map (Array.map (Array.map (fun i -> Rational.make i m))) r
+    r
 
+  (* TO BE MOVED *)
+  let p_denom sigma k n  = binomial (k - sigma) (n - sigma)
+
+  (* TO BE OPTIMIZED *)
+  (* p.(i).(j) is the razborov function p(H_j; G_i) *)
+  (* so that P X is the projection of X *)
+  let p_tabulate sigma h_array g_array =
+    let k = Flag.size h_array.(0)
+    and n = Flag.size g_array.(0) in
+    assert (sigma <= k && k <= n);
+    let l = Array.length h_array
+    and m = Array.length g_array in
+    
+    let trick rat = (* TO BE REPLACED *)
+      (Rational.nom rat) * (p_denom sigma k n) / (Rational.denom rat) in
+    let r = Array.init m
+      (fun i -> Array.init l
+	(fun j ->
+	  trick (p sigma h_array.(j) g_array.(i)))) in
+    r
+    
+  let p2_denom sigma k1 n = binomial (k1 - sigma) (n - sigma)
+
+  let q_denom sigma n = (binomial sigma n) * (fact sigma)
+      
   (* unlabeling factor *)
-  let q k g =
-    let n = Flag.size g in
+  let q_nom k g =
     let acc = ref [] in
     let record a =
       acc := (Array.init k (Array.get a)) :: !acc in
     iter_on_automorphisms record g;
     let valid_types = remove_duplicated !acc in
-    let count = List.length valid_types in
-    Rational.make count ((binomial k n) * (fact k))
+    List.length valid_types
+    
+  let q k g =
+    let nom = q_nom k g
+    and denom = q_denom k (Flag.size g) in
+    Rational.make nom denom
       
   (********* Spanning flags **********)
       
