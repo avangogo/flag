@@ -24,8 +24,8 @@ sig
   (** Optimized functions *)
     
   val p2_tabulate : int -> Flag.t array ->
-    Flag.t array -> Flag.t array -> int array array array
-  val p_tabulate : int -> Flag.t array -> Flag.t array -> int array array
+    Flag.t array -> Flag.t array -> Sparse.t array
+  val p_tabulate : int -> Flag.t array -> Flag.t array -> Sparse.t
 
   val q_nom : int -> Flag.t -> int
     

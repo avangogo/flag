@@ -35,12 +35,13 @@ let sparseblock_of_matrix zero m = (* m must be square *)
   { entries = Array.of_list (List.rev !entries);
     iindices = Array.of_list (List.rev !iindices);
     jindices = Array.of_list (List.rev !jindices) }
-
+    
 (* the final matrix will be symetric *)
 let matrix_of_sparseblock zero n b =
   let m = Array.make_matrix n n zero in
   for i = 0 to (Array.length b.entries) - 1 do
     assert (m.(b.iindices.(i)).(b.jindices.(i)) = zero);
+    assert (m.(b.jindices.(i)).(b.iindices.(i)) = zero);
     m.(b.iindices.(i)).(b.jindices.(i)) <- b.entries.(i);
     m.(b.jindices.(i)).(b.iindices.(i)) <- b.entries.(i)
   done;

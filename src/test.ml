@@ -140,7 +140,7 @@ module GenericStorageTest ( Flag : Flag.S ) =
 	
     let test_get_p tsize tid i j =
       test_ (Printf.sprintf "get_p %d in %d type%d id%d" i j tsize tid)
-	(S.get_p (S.basis_id i tsize tid) (S.basis_id j tsize tid) = tabulate_p tsize tid i j)
+	(Sparse.to_dense (S.get_p (S.basis_id i tsize tid) (S.basis_id j tsize tid)) = tabulate_p tsize tid i j)
 
     let tabulate_p2 tsize tid i j k =
       let scale = Combinatoric.binomial (i - tsize) (k - tsize) in
@@ -152,7 +152,7 @@ module GenericStorageTest ( Flag : Flag.S ) =
       let ai = raw_basis i tsize tid
       and aj = raw_basis j tsize tid
       and ak = raw_basis k tsize tid in
-      Array.map (fun hi -> Array.map (fun hj -> Array.map (fun hk -> intify (A.p2 tsize hi hj hk)) ak) aj) ai
+      Array.map (fun hk -> Array.map (fun hi -> Array.map (fun hj -> intify (A.p2 tsize hi hj hk)) aj) ai) ak
 
 (*    let print_tab s t =
       Printf.printf "Tab %s\n" s; 
@@ -167,7 +167,8 @@ module GenericStorageTest ( Flag : Flag.S ) =
 	
     let test_get_p2 tsize tid i j k =
       test_ (Printf.sprintf "get_p2 %d %d %d" i j k)
-	(tabulate_p2 tsize tid i j k = S.get_p2 (S.basis_id i tsize tid) (S.basis_id j tsize tid) (S.basis_id k tsize tid))
+	(tabulate_p2 tsize tid i j k =
+	    Array.map Sparse.to_dense (S.get_p2 (S.basis_id i tsize tid) (S.basis_id j tsize tid) (S.basis_id k tsize tid)))
 
   end
 

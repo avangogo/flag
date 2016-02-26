@@ -1,4 +1,4 @@
-CAMLC = ocamlc
+CAMLC = ocamlc -g
 CAMLOPT = ocamlopt -p -inline 20 -nodynlink -unsafe # -noassert
 CAMLDOC = ocamldoc -html -keep-code
 MKTOP = ocamlmktop
@@ -21,7 +21,7 @@ TEST = test
 TEST_EXEC = .test
 TOPLEVEL = toplevel
 
-RAW_OBJS = param.cmo common.cmo print.cmo combinatoric.cmo rational.cmo field.cmo prettyprinting.cmo refine.cmo flag.cmo graphic.cmo algebra.cmo graph.cmo graph_mod.cmo digraph.cmo trianglefree.cmo storage.cmo sdp.cmo latexify.cmo vectors.cmo inequality.cmo solve.cmo
+RAW_OBJS = param.cmo common.cmo print.cmo combinatoric.cmo rational.cmo field.cmo prettyprinting.cmo refine.cmo sdp.cmo sparse.cmo flag.cmo graphic.cmo algebra.cmo graph.cmo graph_mod.cmo digraph.cmo trianglefree.cmo storage.cmo latexify.cmo vectors.cmo inequality.cmo solve.cmo
 OBJS = $(addprefix ${COMPILE}/,${RAW_OBJS}) 
 MAIN_OBJ = ${COMPILE}/${MAIN}.cmo
 MAIN_OBJ_OPT = ${COMPILE}/${MAIN}.cmx

@@ -11,9 +11,9 @@ module Solve = Solve.Make (Trianglefree)
 open Solve
 open I
 
-let b = S.untyped_basis_id 4
+let b = S.untyped_basis_id 6
   
-let c0 = 0.348
+let c0 = 0.34
 
 (* **** sigma_sources ***** *)
 
@@ -95,7 +95,8 @@ let rooted_fork =
     
 (* let _ = Vect.draw rooted_fork
    let _ = Vect.draw (Vect.untype rooted_fork) *)
-  
+
+
 (* ************ min deg *************** *)
 let b_1 = { b with typeSize = 1; typeId = 0 }
 
@@ -112,7 +113,7 @@ let alpha_is_c0 =
 
 (* ******* Construction of the problem ********* *)
 let cauchy_schwartz = all_cs b
-
+  
 let inequalities =
   List.concat
     [

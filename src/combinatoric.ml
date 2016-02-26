@@ -39,6 +39,14 @@ let pseudo_invert n t =
 let invert t =
   pseudo_invert (Array.length t) t
 
+(** computes antecedents of [\{0, .., n-1\}] *)
+let pre_image n t =
+  let res = Array.make n [] in
+  for i = 0 to (Array.length t) - 1 do
+    res.(t.(i)) <- i :: res.(t.(i))
+  done;
+  Array.map Array.of_list res
+    
 (** Assuming [t] is an injection from [\{0, .., k-1\}] to [\{0, .., n-1\}],
 [permutation_of_injection t n] returns the unique bijection of [\{0, .., n-1\}]
 that is equal to [t] on [\{0,...,k-1\}] and is increasing on [\{k, .., n-1\}]. *)
@@ -57,7 +65,7 @@ let permutation_of_injection map n =
     incr j;
   done;
   res
-
+    
 (** [compose p q] returns the map [\[| p.(q.(0)); ...; p.(q.(n-1)) |\]]. *)
 let compose p q =
   assert (Array.length p = Array.length q);

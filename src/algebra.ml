@@ -319,6 +319,8 @@ struct
   Rational.make !count total
 
   (* optimized versions *)
+  (* return an array indiced on g of matrices indiced on h1 times h2 *)
+  (* Order of the coordinates : g h1 h2 *)
   let p2_tabulate sigma h1_array h2_array g_array =
     let k1 = Flag.size h1_array.(0)
     and k2 = Flag.size h2_array.(0)
@@ -327,9 +329,9 @@ struct
     let l1 = Array.length h1_array
     and l2 = Array.length h2_array
     and l = Array.length g_array in
-    let r = Array.init l1
-      (fun _ -> Array.init l2 
-	(fun _ -> Array.make l 0)) in
+    let r = Array.init l
+      (fun _ -> Array.init l1 
+	(fun _ -> Array.make l2 0)) in
     let nf = normal_form_typed sigma in
     let use_map map =
       let co_map = complementary n sigma map in
@@ -338,18 +340,16 @@ struct
 	and h2 = nf (Flag.induce co_map g_array.(i)) in
 	let i1 = array_search h1_array h1
 	and i2 = array_search h2_array h2 in
-	r.(i1).(i2).(i) <- r.(i1).(i2).(i) + 1
+	r.(i).(i1).(i2) <- r.(i).(i1).(i2) + 1
       done in
     iter_on_subsets use_map sigma k1 n;
-    r
+    Array.map Sparse.of_dense r
 
   (* TO BE MOVED *)
   let p_denom sigma k n  = binomial (k - sigma) (n - sigma)
 
-  (* TO BE OPTIMIZED *)
-  (* p.(i).(j) is the razborov function p(H_j; G_i) *)
-  (* so that P X is the projection of X *)
-  let p_tabulate sigma h_array g_array =
+  (*
+    let p_tabulate_old sigma h_array g_array =
     let k = Flag.size h_array.(0)
     and n = Flag.size g_array.(0) in
     assert (sigma <= k && k <= n);
@@ -362,7 +362,29 @@ struct
       (fun i -> Array.init l
 	(fun j ->
 	  trick (p sigma h_array.(j) g_array.(i)))) in
-    r
+    Sparse.of_dense r *)
+
+  (* p.(i).(j) is the razborov function p(H_j; G_i) *)
+  (* indices are ordered so that P X is the projection of X *)
+  let p_tabulate sigma h_array g_array =
+    let k = Flag.size h_array.(0)
+    and n = Flag.size g_array.(0) in
+    assert (sigma <= k && k <= n); 
+    let l = Array.length h_array
+    and m = Array.length g_array in
+    let res = Sparse.make_dynmat m l in
+    let spa = Sparse.makeSPA l in
+    (* for each line *)
+    for i = 0 to m - 1 do
+      let g = g_array.(i) in
+      let use_map map =
+	let h = normal_form_typed sigma (Flag.induce map g) in
+	let j = array_search h_array h in
+	Sparse.scatterSPA spa 1 j in
+      iter_on_subsets use_map sigma k n;
+      Sparse.gatherSPA spa res
+    done;
+    Sparse.dynmat_to_sparse res
     
   let p2_denom sigma k1 n = binomial (k1 - sigma) (n - sigma)
 

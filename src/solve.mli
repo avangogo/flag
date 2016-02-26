@@ -12,9 +12,11 @@ type 'a constraintblock = {
 val constraintblock_map :
   ('a -> 'b) -> 'a constraintblock -> 'b constraintblock
 
+(*
 val denom_q : 'a basis_id -> int
 val denom_p : 'a basis_id -> 'b basis_id -> int
 val denom_p2_square : 'a basis_id -> int
+*)
 
 module Make :
   functor (Flag : Flag.S) ->

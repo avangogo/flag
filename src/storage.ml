@@ -29,11 +29,11 @@ let load_or_create create filename =
     load_marshal filename
   with
   | Not_found ->
-    Print.verbose (Printf.sprintf "\nComputing file %s\n" filename);
+     Print.verbose ~color:Print.blue (Printf.sprintf "\nComputing file %s\n" filename);
     let obj = create () in
-    Print.verbose (Printf.sprintf "Writing in file %s... " filename);
+    Print.verbose ~color:Print.blue (Printf.sprintf "Writing in file %s... " filename);
     save_marshal filename obj;
-    Print.verbose " Done\n";
+    Print.verbose ~color:Print.blue " Done\n";
     flush stdout;
     obj
 
@@ -160,15 +160,14 @@ struct
       and b1 = get_basis id1
       and b2 = get_basis id2 in
       p_tabulate k b1 b2
-    (* Array.map (fun h -> Array.map (p k h) b2) b1 *) (* TO BE REMOVED *)
     | k when k > 1 -> 
       let id3 = basis_id (id1.flagSize+1) id1.typeSize id1.typeId in
       let p13 = get_p id1 id3
       and p32 = get_p id3 id2 in
       let scale =
 	((get_p_denom id1 id3)*(get_p_denom id3 id2))/(get_p_denom id1 id2) in
-      let res = multiply_matrix 0 ( + ) ( * ) p32 p13 in
-      matrix_map (fun x -> x / scale) res
+      let res = Sparse.mul p32 p13 in
+      Sparse.map (fun x -> x / scale) res
     | _ -> failwith "make_p : bad arguments"    
 
   and get_p id1 id2 =

@@ -17,13 +17,13 @@ module Vect :
     functor (Flag : Flag.S) ->
 sig
   type vect = (F.t, Flag.t) vector
-  val get_q : Flag.t basis_id -> F.t array
+  val get_q : Flag.t basis_id -> int array
   val get_untype : Flag.t basis_id -> int array
-  val get_p : Flag.t basis_id -> Flag.t basis_id -> F.t array array
+  val get_p : Flag.t basis_id -> Flag.t basis_id -> Sparse.t
   val get_p2 :
     Flag.t basis_id ->
     Flag.t basis_id ->
-    Flag.t basis_id -> F.t array array array
+    Flag.t basis_id -> Sparse.t array
   val get_size : Flag.t basis_id -> int
 
   (** Apply the unrooting operation. *)
@@ -32,8 +32,12 @@ sig
   (** Projects the vector on a basis of more flag. *)
   val expand : Flag.t basis_id -> vect -> vect
 
+  val expand_all : Flag.t basis_id -> vect array -> vect array
+    
   (** Multiplication of the flag algebra. *)
   val multiply : vect -> vect -> vect
+
+  val multiply_all : vect array -> vect array -> vect array array
     
   (** Scalar multiplication of the vector space structure.
   The optional name is the name of the scalar.*)

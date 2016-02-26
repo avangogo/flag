@@ -45,6 +45,7 @@ let print_ineq_infos rat_ineq float_ineq =
   print_ineq_infos_0 string_of_float float_ineq
 
 (* translation from rational vectors to int vectors *)
+(*
 let rat_to_int_array d v =
   let ini i =
     let r = v.(i) in
@@ -63,8 +64,17 @@ let denom_p b1 b2 =
 let denom_p2_square b =
   let x = b.flagSize - b.typeSize in
   Combinatoric.binomial x (2*x)
+*)
 
+let time = ref 0.
 
+let tic () =
+  time := Sys.time ()
+
+let tac s =
+  Print.p ~color:Print.red (Printf.sprintf "%s time : %.3f\n" s (Sys.time () -. !time))
+
+    
 (* optimized bracket operator *)
 let int_untype n q untype v =
   let res = Array.make n 0 in
@@ -94,10 +104,11 @@ struct
   let opt_untype b untype q v =
     let n = get_size (untype_basis b) in
     let res = int_untype n q untype v in
-    Array.map Rational.int res
+    Array.map Rational.int res     
 
+      
   (* bracketed multiplication table *)
-  let mul_table b =
+(*  let mul_table b =
     (* the basis where products live *)
     let b2 = square_basis b in
     (* *)
@@ -109,15 +120,32 @@ struct
     let q = get_q b2 in
     let untype = get_untype b2 in
     matrix_map (opt_untype b2 untype q) p2
+*)  
+    
+  let mul_table2 b =
+    (* the basis where products live *)
+    let b2 = square_basis b in
+    (* multiplication table *)
+    let p2 = get_p2 b b b2 in
+    (* unlabeloperation *)
+    let q = get_q b2 in
+    let untype = get_untype b2 in
+    let n = get_size (untype_basis b2) in
+    (* *)
+    let rev_untype = Combinatoric.pre_image n untype in
+    (* *)
+    Array.map (fun select -> Sparse.linear_combination select q p2) rev_untype
       
   (* returns bflags=[|A0,..,Am-1|] such that Ai*X (coefficient by coefficient multiplication) is the coefficient of Fi in the Cauchy-Schwarz inequality with sdp matrix X *)
   let cs_block b =
     Print.verbose (Printf.sprintf "cs_block : %s\n" (basis_name b));
-    let m = mul_table b in
-    let inv_m = matrix_array_of_array_matrix m in
+(*    let m = mul_table b in
+      let inv_m = matrix_array_of_array_matrix m in *)
+    let m = mul_table2 b in
+    let m_sparseblock = Array.map Sparse.to_sparseblock m in
     {
-      block_type = MAT (Array.length m);
-      bflags = Array.map (sparseblock_of_matrix Rational.zero) inv_m;
+      block_type = MAT (Sparse.n m.(0));
+      bflags = Array.map (Sdp.sparseblock_map float_of_int) m_sparseblock;
       bbound = empty_sparseblock
     }
       
@@ -173,9 +201,7 @@ struct
       (Printf.sprintf "Building Cauchy-Schwartz blocks (%d bases)\n"
 	 (List.length cs));
 
-    let rat_cs_blocks = Array.map cs_block (Array.of_list cs) in
-    let cs_blocks =
-      Array.map (constraintblock_map Rational.to_float) rat_cs_blocks in
+    let cs_blocks = Array.map cs_block (Array.of_list cs) in
 
     (* Inequalities *)
     print_ineq_infos rat_ineq float_ineq;

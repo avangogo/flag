@@ -24,10 +24,10 @@ struct
   module S = Storage.Make (Flag)
 
   (*  *)
-  let get_q b = Array.map F.int (S.get_q b) (* FIXME *)
+  let get_q b = S.get_q b (* FIXME *)
   let get_untype = S.get_untype
-  let get_p b1 b2 = matrix_map F.int (S.get_p b1 b2) (* FIXME *)
-  let get_p2 b1 b2 b3 = Array.map (matrix_map F.int) (S.get_p2 b1 b2 b3) (* FIXME *)
+  let get_p b1 b2 = S.get_p b1 b2 (* FIXME *)
+  let get_p2 b1 b2 b3 = S.get_p2 b1 b2 b3 (* FIXME *)
   let get_size = S.get_size
   let get_basis = S.get_basis
     
@@ -40,7 +40,7 @@ struct
     and n0 = get_size (untype_basis b) in
     let res = Array.make n0 F.zero in
     for i = 0 to (Array.length v) - 1 do
-      res.(untype.(i)) <- F.add res.(untype.(i)) (F.mul q.(i) v.(i))
+      res.(untype.(i)) <- F.add res.(untype.(i)) (F.mul (F.int q.(i)) v.(i))
     done;
     Array.map (fun x -> F.div x (F.int denom)) res
       
@@ -51,36 +51,62 @@ struct
       vect = raw_untype a.basis a.vect }
       
   (* change of basis *)
-  let raw_expand b1 b2 v =
-    let p = S.get_p b1 b2 in
+  let raw_expand (p : 'a option) b1 b2 v =
+    let p = match p with
+      | Some x -> x
+      | None -> S.get_p b1 b2 in
     let denom = S.get_p_denom b1 b2 in
     let scaled_v = Array.map (fun x -> F.div x (F.int denom)) v in
-    apply_int_matrix F.int F.zero F.add F.mul p scaled_v
+    Sparse.field_apply F.int F.zero F.add F.mul p scaled_v
     
-  let expand new_basis a =
+  let vect_expand ?p new_basis a =
     { name = a.name;
       expr = a.expr;
       basis = new_basis;
-      vect = raw_expand a.basis new_basis a.vect }
+      vect = raw_expand p a.basis new_basis a.vect }
 
-  (*  *)
-  let raw_multiply b1 b2 v1 v2 =
+  let expand new_basis a =
+    vect_expand new_basis a
+
+  let expand_all new_b t =
+    let b = t.(0).basis in (* FIXME : error if t is empty *)
+    assert (array_for_all (fun v -> v.basis = b) t);
+    let p = S.get_p b new_b in
+    Array.map (vect_expand ~p:p new_b) t
+      
+  (* Multiplication *)
+
+  let raw_multiply (p2 : 'a option ) b1 b2 v1 v2 =
     let b = mul_basis b1 b2 in
-    let p2 = S.get_p2 b1 b2 b in
-    let p2_inv = matrix_array_of_array_matrix p2 in
+    let p2 = match p2 with
+      | Some x -> x
+      | None -> S.get_p2 b1 b2 b in
     let denom = S.get_p2_denom b1 b2 b in
     Array.map (fun m ->
       F.div
-	(bilinear_form_int F.int F.zero F.add F.mul v1 m v2)
+	(Sparse.field_bilinear F.int F.zero F.add F.mul v1 m v2)
 	(F.int denom)
-    ) p2_inv
+    ) p2
       
-  let multiply a b =
+  let vect_multiply ?p2 a b =
     { name = option_map2 (sprintf "%s*%s") a.name b.name;
       expr = Times (a.expr, b.expr);
       basis = mul_basis a.basis b.basis;
-      vect = raw_multiply a.basis b.basis a.vect b.vect }
+      vect = raw_multiply p2 a.basis b.basis a.vect b.vect }
 
+  let multiply a b =
+    vect_multiply a b
+      
+  let multiply_all t1 t2 =
+    let b1 = t1.(0).basis in
+    let b2 = t2.(0).basis in
+    assert (array_for_all (fun v -> v.basis = b1) t1);
+    assert (array_for_all (fun v -> v.basis = b2) t2);
+    let p2 = S.get_p2 b1 b2 (mul_basis b1 b2) in
+    let init i j =
+      vect_multiply ~p2:p2 t1.(i) t2.(j) in
+    Array.init (Array.length t1) (fun i -> Array.init (Array.length t2) (init i))
+      
   let raw_scalar_mul lambda v =
     Array.map (F.mul lambda) v
 

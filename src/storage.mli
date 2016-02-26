@@ -32,8 +32,8 @@ sig
   (** {8 Compute or load functions } *)
 				  
   val get_basis : t basis_id -> t array
-  val get_p : t basis_id -> t basis_id -> int array array
-  val get_p2 : t basis_id -> t basis_id -> t basis_id -> int array array array
+  val get_p : t basis_id -> t basis_id -> Sparse.t
+  val get_p2 : t basis_id -> t basis_id -> t basis_id -> Sparse.t array
   val get_q : t basis_id -> int array
   val get_untype : t basis_id -> int array
   val get_size : t basis_id -> int
