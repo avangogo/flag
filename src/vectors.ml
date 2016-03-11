@@ -2,7 +2,7 @@ open Common
 open Storage
 open Printf
 open Prettyprinting
-       
+   
 (* represent sum_i vect.(i) basis.(i) *)
 type ('a, 'b) vector =
   { 
