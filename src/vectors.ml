@@ -96,6 +96,8 @@ struct
 
   let multiply a b =
     vect_multiply a b
+
+  let ( *~ ) = multiply
       
   let multiply_all t1 t2 =
     let b1 = t1.(0).basis in
@@ -116,7 +118,7 @@ struct
       expr = Times (Num scalar_name, a.expr);
       basis = a.basis;
       vect = raw_scalar_mul lambda a.vect }
-
+      
   let raw_add v1 v2 =
     array_map2 F.add v1 v2
 
@@ -127,6 +129,8 @@ struct
       basis = a.basis;
       vect = raw_add a.vect b.vect }
 
+  let ( +~ ) = add 
+      
   let raw_sub v1 v2 =
     array_map2 F.sub v1 v2
 
@@ -137,6 +141,8 @@ struct
       basis = a.basis;
       vect = raw_sub a.vect b.vect }    
 
+  let ( -~ ) = sub
+      
   let raw_opposite v =
     Array.map F.minus v
 

@@ -39,6 +39,9 @@ sig
 
   val multiply_all : vect array -> vect array -> vect array array
     
+  (** Alias for multiply *)
+  val ( *~ ) : vect -> vect -> vect
+    
   (** Scalar multiplication of the vector space structure.
   The optional name is the name of the scalar.*)
   val scalar_mul : ?name:string -> F.t -> vect -> vect
@@ -46,9 +49,15 @@ sig
   (** Vector addition. *)
   val add : vect -> vect -> vect
 
+  (** Infix alias for add *)
+  val ( +~ ) : vect -> vect -> vect 
+    
   (** Vector substraction. *)
   val sub : vect -> vect -> vect
 
+  (** Infix alias for sub *)
+  val ( -~ ) : vect -> vect -> vect 
+    
   (** Multiplication by -1. *)
   val opposite : vect -> vect
 

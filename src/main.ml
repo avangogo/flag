@@ -6,14 +6,15 @@ open Storage
 module S = Storage.Make (Trianglefree)
 module I = Inequality.Make (Field.Float) (Trianglefree)
 module Vect = Vectors.Vect (Field.Float) (Trianglefree)
+open Vect
 module RatVect = Vectors.Vect (Rational) (Trianglefree)
 module Solve = Solve.Make (Trianglefree)
 open Solve
 open I
 
-let b = S.untyped_basis_id 6
+let b = S.untyped_basis_id 4
   
-let c0 = 0.34
+let c0 = 0.345
 
 (* **** sigma_sources ***** *)
 
@@ -51,7 +52,7 @@ let f basis =
   let x_f0 = Vect.scalar_mul ~name:"(c0 - 1)" (c0 -. 1.) (f0 basis) in
   let c0_one = Vect.scalar_mul ~name:"c0" c0 (Vect.one basis) in
   let sum = sum_of_sigma_sources basis in
-  Vect.sub (Vect.add sum x_f0) c0_one
+  sum +~ x_f0 -~ c0_one
 
 (* constructing indV and indT *)
 let b3 = S.untyped_basis_id 3
@@ -82,24 +83,21 @@ let sausage_const = 1. (*0.88*)
   
 let fork = (* fork : kappa - (3*(3*c0-1)^2)/sausage *)
   let x = 3. *. c0 -. 1. in
-  let y = (3. *. x*.x)/.sausage_const in
-  Vect.sub kappa (Vect.scalar_mul y (Vect.one b3))
+  let y = (3. *. x *. x)/.sausage_const in
+  kappa -~ (Vect.scalar_mul y (Vect.one b3))
 
 (* fork inequality : chi - (1/sausage)*(c0 - alpha)^2 *)
 let rooted_fork =
-  let x = Vect.sub
-    (Vect.scalar_mul c0 (Vect.one b2_1))
-    (Vect.expand b2_1 alpha) in
-  let y = Vect.scalar_mul (1./.sausage_const) (Vect.multiply x x) in
-  Vect.sub chi y
+  let x =
+    (Vect.scalar_mul c0 (Vect.one b2_1)) -~ (Vect.expand b2_1 alpha) in
+  chi *~ ( Vect.scalar_mul (1 ./. sausage_const) (x *~ x) )
     
 (* let _ = Vect.draw rooted_fork
    let _ = Vect.draw (Vect.untype rooted_fork) *)
-
-
+  
 (* ************ min deg *************** *)
 let b_1 = { b with typeSize = 1; typeId = 0 }
-
+(*
 let alpha_geq_c0 =
   at_least alpha c0
 
@@ -110,7 +108,7 @@ let alpha_is_c0 =
   name_list "Alpha is c0"
     (List.concat (List.map equality
 		    (List.map untype alpha_geq_c0_ext)))
-
+*)
 (* ******* Construction of the problem ********* *)
 let cauchy_schwartz = all_cs b
   
@@ -122,14 +120,14 @@ let inequalities =
       [ expand b (at_least indV 0.);
 	expand b (at_least indT 0.);
 	expand b (at_least fork 0.) ];
-      multiply_and_unlabel b (at_least rooted_fork 0.);
-      alpha_is_c0
+      (* multiply_and_unlabel b (at_least rooted_fork 0.);*)
+    (*      alpha_is_c0 *)
     ]
 
 let b2 = S.untyped_basis_id 2
 let edge = RatVect.flag ~name:"edge" b2 (Digraph.make 2 [|(0, 1)|])
 let obj = RatVect.expand b (RatVect.scalar_mul (Rational.make (-1) 2) edge)
 
-let _ = solve "test_" b cauchy_schwartz [] inequalities obj.vect
+let _ = solve "ch" b cauchy_schwartz [] inequalities obj.vect
 
 (*  S.basis_id *)
