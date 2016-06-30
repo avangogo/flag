@@ -1,4 +1,4 @@
-This program requires OCaml 3.12 (or above)
+This program requires OCaml 4.02 (or above)
 
 ## Before compiling
 # In the main directory "flag/"
@@ -12,7 +12,7 @@ $ mkdir save/"flagtype"
 $ make
 
 # Compiling in native (execution 4 to 10 times faster)
-make opt
+$ make opt
 
 # Compiling (in bytecode) and excuting the code in main.ml
 $ make launch

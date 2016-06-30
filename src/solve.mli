@@ -20,6 +20,7 @@ val denom_p2_square : 'a basis_id -> int
 
 module Make :
   functor (Flag : Flag.S) ->
+    functor (F : Field.S) -> 
 sig
 
   (** Gives the list of bases that can be used for
@@ -27,20 +28,17 @@ sig
   the input basis.*)
   val all_cs : Flag.t basis_id -> Flag.t basis_id list
 
-  (** [solve filename b cs rat_ineqs float_ineqs obj] build the sdp problem
-      expressed on the flag basis [b]
-      with all constraints of [rat_ineqs] and [float_ineqs] (the only
-      difference is between them is the type of their coefficient),
+  (** [solve filename cs ineq obj] build the sdp problem
+      expressed on the flag basis [obj.basis]
+      with inequalities [ineq] as constraints,
       cauchy-schwartz blocks for all bases of [b] and objective value
       [obj] and writes it to file [filename] in sdpa format.
       If [Param.latex] is enable, it also writes it in latex format in
       file latex/filename.tex . *)
   val solve :
     string ->
-    Flag.t basis_id ->
     Flag.t basis_id list ->
-    (Rational.t, Flag.t) Inequality.inequality list ->
-    (float, Flag.t) Inequality.inequality list ->
-    Rational.t array -> unit
+    (F.t, Flag.t) Inequality.inequality list ->
+    (F.t, Flag.t) Vectors.vector -> unit
 
 end

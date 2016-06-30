@@ -113,9 +113,11 @@ struct
     Array.map (F.mul lambda) v
 
   let scalar_mul ?name lambda a =
-    let scalar_name = option_default (F.print lambda) name in
-    { name = option_map (sprintf "%s.%s" scalar_name) a.name;
-      expr = Times (Num scalar_name, a.expr);
+    let scalar_expr = match name with
+      | None -> expr F.print F.int lambda
+      | Some name -> Num name in
+    { name = option_map (sprintf "%s.%s" (print scalar_expr)) a.name;
+      expr = Times (scalar_expr, a.expr);
       basis = a.basis;
       vect = raw_scalar_mul lambda a.vect }
       

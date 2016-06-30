@@ -13,8 +13,8 @@ let rec simplify0 = function
   | Plus (Zero, a) -> a
   | Times (Zero, a) -> Zero
   | Times (a, Zero) -> Zero
-  | Times (One, a) -> One
-  | Times (a, One) -> One
+  | Times (One, a) -> a
+  | Times (a, One) -> a
   | Minus Zero -> Zero
   | Minus (Minus a) -> a
   | a -> a
@@ -36,9 +36,11 @@ let box a s =
 let rec print0 = function
   | Plus (a, (Minus b)) -> Printf.sprintf "%s - %s" (print0 a) (print0 b)
   | Plus (a, b) -> Printf.sprintf "%s + %s" (print0 a) (print0 b) 
-  | Minus a -> Printf.sprintf "-( %s )" (box a (print0 a))
+  | Minus a -> Printf.sprintf "-%s" (box a (print0 a))
   | Times (Num a, b) ->
-     Printf.sprintf "%s.%s" a (box b (print0 b)) 
+     Printf.sprintf "%s.%s" a (box b (print0 b))
+  | Times (a, b) when a = b ->
+     Printf.sprintf "%s^2" (box a (print0 a)) 
   | Times (a, b) ->
      Printf.sprintf "%s*%s" (box a (print0 a)) (box b (print0 b))  
   | Unlab a -> Printf.sprintf "[| %s |]" (print0 a)
@@ -49,3 +51,9 @@ let rec print0 = function
 
 let print a =
   print0 (simplify a)
+
+let expr print int x =
+  if x = int 0 then Zero
+  else if x = int 1 then One
+  else if x = int (-1) then Minus One
+  else Num (print x)

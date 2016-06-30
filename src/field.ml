@@ -12,6 +12,7 @@ sig
   val sub : t -> t -> t
   val minus : t -> t
   val print : t -> string
+  val to_float : t -> float
 end
 
 module Float : S with type t = float =
@@ -27,6 +28,7 @@ struct
   let sub = ( -.)
   let minus = (~-.)
   let print = string_of_float
+  let to_float x = x
 end
 
 module Num : S with type t = Num.num =
@@ -43,4 +45,5 @@ struct
   let sub = ( -/ )
   let minus = minus_num
   let print = string_of_num
+  let to_float = float_of_num
 end

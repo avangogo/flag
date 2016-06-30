@@ -259,7 +259,7 @@ struct
     let k = Array.length select in
     let res = Array.make (n - k + sigma) 0 in
     for i = 0 to sigma-1 do
-    res.(i) <- i
+      res.(i) <- i
     done;
     let j = ref sigma
     and l = ref sigma in
@@ -317,7 +317,7 @@ struct
   let total =
     (binomial (k - sigma) (n - sigma)) * (binomial (k' - sigma) (n - k)) in
   Rational.make !count total
-
+      
   (* optimized versions *)
   (* return an array indiced on g of matrices indiced on h1 times h2 *)
   (* Order of the coordinates : g h1 h2 *)
@@ -329,21 +329,21 @@ struct
     let l1 = Array.length h1_array
     and l2 = Array.length h2_array
     and l = Array.length g_array in
-    let r = Array.init l
-      (fun _ -> Array.init l1 
-	(fun _ -> Array.make l2 0)) in
     let nf = normal_form_typed sigma in
-    let use_map map =
-      let co_map = complementary n sigma map in
-      for i = 0 to l-1 do
+    let init i = (* computes the slice i *)
+      let r = Array.make_matrix l1 l2 0 in
+      let use_map map =
+	let co_map = complementary n sigma map in
 	let h1 = nf (Flag.induce map g_array.(i))
 	and h2 = nf (Flag.induce co_map g_array.(i)) in
 	let i1 = array_search h1_array h1
 	and i2 = array_search h2_array h2 in
-	r.(i).(i1).(i2) <- r.(i).(i1).(i2) + 1
-      done in
-    iter_on_subsets use_map sigma k1 n;
-    Array.map Sparse.of_dense r
+	r.(i1).(i2) <- r.(i1).(i2) + 1
+      in
+      iter_on_subsets use_map sigma k1 n;
+      Sparse.of_dense r
+    in
+    Array.init l init
 
   (* TO BE MOVED *)
   let p_denom sigma k n  = binomial (k - sigma) (n - sigma)

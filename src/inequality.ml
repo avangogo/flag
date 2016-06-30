@@ -65,45 +65,35 @@ module Make ( F : Field.S ) ( Flag : Flag.S ) =
       flags = Vect.multiply flag i.flags;
       bound = i.bound
     }*)
-
-
+      
   let multiply_by_flag b flagId i =
     let flag = Vect.flag_of_id ~name:"x" b flagId in
-    let new_b =  mul_basis b i.flags.basis in
-    let exp_flag = Vect.expand new_b flag in
     {
       name = None;
       flags =
-	Vect.sub (Vect.multiply flag i.flags)
-	  (Vect.scalar_mul i.bound exp_flag);
+	Vect.multiply flag
+	  (Vect.sub i.flags (Vect.scalar_mul i.bound (Vect.one i.flags.basis)));
       bound = F.zero
     }
 
   let multiply_by_all_flags b i =
+    let i_flags =
+      (Vect.sub i.flags (Vect.scalar_mul i.bound (Vect.one i.flags.basis))) in    
     let b_size = Vect.get_size b in
-    let basis = Array.init (b_size) (Vect.flag_of_id ~name:"x" b) in
-    let new_b =  mul_basis b i.flags.basis in
-    let exp_basis = Vect.expand_all new_b basis in
-    let products = Vect.multiply_all [| i.flags |] basis in
+    let basis = Array.init b_size (Vect.flag_of_id ~name:"x" b) in
+    let products = Vect.multiply_all [| i_flags |] basis in
     Array.to_list (Array.init b_size (fun k -> 
       {
 	name = None;
-	flags =
-	  Vect.sub products.(0).(k)
-	    (Vect.scalar_mul i.bound exp_basis.(k));
+	flags = products.(0).(k);
 	bound = F.zero
       }
     ))
 
-(*
-  let multiply_by_all_flags b i =
-    let b_size = Vect.get_size b in
-    list_init b_size (fun id -> multiply_by_flag b id i)
-*)
-
   let multiply_and_unlabel b i =
     let b0 = i.flags.basis in
-    let b1 = Storage.div_basis {b with typeSize = b0.typeSize} b0 in
+    let b1 = Storage.div_basis
+      {b with typeSize = b0.typeSize; typeId = b0.typeId} b0 in
     let i2 = multiply_by_all_flags b1 i in
     List.map untype i2
 	      
@@ -124,7 +114,7 @@ module Make ( F : Field.S ) ( Flag : Flag.S ) =
 
   let flag_at_least b flagid bound =
     { name = None;
-      flags = Vect.flag_of_id b flagid;
+      flags = Vect.flag_of_id ~name:"x" b flagid;
       bound = bound }
 
   let flag_at_most b flagid bound =

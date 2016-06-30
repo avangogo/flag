@@ -41,10 +41,10 @@ INCLUDE = -I ${COMPILE} -I ${SRC}
 all: .depend ${EXEC}
 
 launch: all
-	@./${EXEC}
+	@./${EXEC} -v
 
 optlaunch: opt
-	@./${EXEC}.opt
+	@./${EXEC}.opt -v
 
 #opt: ${EXEC}.opt
 

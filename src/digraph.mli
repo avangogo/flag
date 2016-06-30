@@ -4,6 +4,8 @@ This module is compatible with the Flag.S signature *)
 type t = { n : int; e : (int * int) array }
 val name : string
 val size : t -> int
+val in_degrees : t -> int array
+val out_degrees : t -> int array
 val in_neibrs : t -> int -> int array
 val out_neibrs : t -> int -> int array
 val iso_invariant : t -> int -> int list array

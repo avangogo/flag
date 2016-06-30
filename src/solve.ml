@@ -34,37 +34,11 @@ let print_ineq_infos_0 p_scal ineq =
   List.iter treat assoc
 
 
-let print_ineq_infos rat_ineq float_ineq =
+let print_ineq_infos p_scal ineq =
   Print.p (sprintf "Building Inequalities block (%d inequalities)\n"
-	     ((List.length float_ineq) + (List.length rat_ineq)));
-  Print.verbose
-    (Printf.sprintf "%d rational inequalities\n%d float inequalities\n"
-       (List.length rat_ineq) (List.length float_ineq));
+	     (List.length ineq));
   Print.p ~color:Print.yellow "Inequalities list:\n";
-  print_ineq_infos_0 Rational.print rat_ineq;
-  print_ineq_infos_0 string_of_float float_ineq
-
-(* translation from rational vectors to int vectors *)
-(*
-let rat_to_int_array d v =
-  let ini i =
-    let r = v.(i) in
-    ((Rational.nom r) * d) / (Rational.denom r) in
-  Array.init (Array.length v) ini
-
-let denom_q b =
-  (Combinatoric.binomial b.typeSize b.flagSize) *
-    (Combinatoric.fact b.typeSize)
-
-
-let denom_p b1 b2 =
-  let typeSize = b1.typeSize in
-  Combinatoric.binomial (b1.flagSize - typeSize) (b2.flagSize - typeSize)
-
-let denom_p2_square b =
-  let x = b.flagSize - b.typeSize in
-  Combinatoric.binomial x (2*x)
-*)
+  print_ineq_infos_0 p_scal ineq
 
 let time = ref 0.
 
@@ -88,7 +62,7 @@ let int_untype n q untype v =
 (* computing just half of the coefficients of the symetric matrix..) *)
 
     
-module Make ( Flag : Flag.S ) =
+module Make ( Flag : Flag.S ) ( F : Field.S ) =
 struct
   module S = Storage.Make ( Flag )
   open S
@@ -188,13 +162,16 @@ struct
     let flags = Array.init n coeff in
     (types, bound, flags, obj)    
 
-  let solve file b cs rat_ineq float_ineq obj =
+  let solve file cs ineq obj =
+
+    let b = obj.basis in
+    
     Print.p (Printf.sprintf "Building sdp problem (%s)\n" file);
     Print.verbose(Printf.sprintf "Flag basis : %s\n" (basis_name b));
     Print.verbose(Printf.sprintf "Size of the basis : %d\n" (S.get_size b));
+    Print.p (Printf.sprintf "Maximizing : %s\n" (option_default "." obj.name));
     assert (List.for_all (fun b0 -> untype_basis (square_basis b0) = b) cs);
-    assert (List.for_all (fun i -> i.flags.basis = b) rat_ineq);
-    assert (List.for_all (fun i -> i.flags.basis = b) float_ineq);
+    assert (List.for_all (fun i -> i.flags.basis = b) ineq);
 
     (* Cauchy-Schwartz *)
     Print.p
@@ -204,10 +181,10 @@ struct
     let cs_blocks = Array.map cs_block (Array.of_list cs) in
 
     (* Inequalities *)
-    print_ineq_infos rat_ineq float_ineq;
+    print_ineq_infos F.print ineq;
     
-    let all_ineq = float_ineq @
-      (List.map (Inequality.map Rational.to_float) rat_ineq) in
+    let all_ineq =
+      (List.map (Inequality.map F.to_float) ineq) in
 
     let ineq_block =
       inequality_block 0. b (Array.of_list all_ineq) in
@@ -215,7 +192,7 @@ struct
     Print.p "Merging\n";
 
     let cons = Array.append cs_blocks [|ineq_block|]
-    and obj = Array.map Rational.to_float obj in
+    and obj = Array.map F.to_float obj.vect in
 
     Print.p "Formating\n";    
 

@@ -8,6 +8,16 @@ let name = "digraph"
 
 let size g = g.n
 
+let out_degrees g =
+  let res = Array.make g.n 0 in
+  Array.iter (fun (v,_) -> res.(v) <- res.(v)+1) g.e;
+  res
+    
+let in_degrees g =
+  let res = Array.make g.n 0 in
+  Array.iter (fun (_,v) -> res.(v) <- res.(v)+1) g.e;
+  res
+  
 let in_neibrs g v =
   Array.map fst (array_filter (fun (_, u) -> v == u) g.e)
 

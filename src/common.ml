@@ -129,6 +129,12 @@ let array_for_all f t =
   let rec aux i =
     (i == n) || (f t.(i) && aux (i + 1)) in
   aux 0
+    
+let array_exists f t =
+  let n = Array.length t in
+  let rec aux i =
+    (i < n) && (f t.(i) || aux (i + 1)) in
+  aux 0
 
 let array_merge t1 t2 =
   let n1 = Array.length t1
