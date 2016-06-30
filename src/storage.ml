@@ -119,7 +119,7 @@ struct
     q_denom id.typeSize id.flagSize
   
   (* specific basis *)
-  let basis_id size typeSize typeId =
+  let basis_id ?(typeSize=0) ?(typeId=0) size =
     {
       flagType = A.flagname;
       flagSize = size;
@@ -128,7 +128,7 @@ struct
     }
 
   let untyped_basis_id size =
-    basis_id size 0 0
+    basis_id size
 
   let check b =
     b.flagType = Flag.name
@@ -161,10 +161,11 @@ struct
       and b2 = get_basis id2 in
       p_tabulate k b1 b2
     | k when k > 1 -> 
-      let id3 = basis_id (id1.flagSize+1) id1.typeSize id1.typeId in
-      let p13 = get_p id1 id3
-      and p32 = get_p id3 id2 in
-      let scale =
+       let id3 =
+	 basis_id ~typeSize:(id1.flagSize+1) ~typeId:id1.typeSize id1.typeId in
+       let p13 = get_p id1 id3
+       and p32 = get_p id3 id2 in
+       let scale =
 	((get_p_denom id1 id3)*(get_p_denom id3 id2))/(get_p_denom id1 id2) in
       let res = Sparse.mul p32 p13 in
       Sparse.map (fun x -> x / scale) res

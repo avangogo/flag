@@ -197,10 +197,15 @@ let _ = tac "Outdegree is c0"
 (* ******* Construction of the problem ********* *)
 let cauchy_schwartz = Solve.all_cs b
 
-let x1 = I.name_list "new f : n" ( new_f_ineq_exp (b.flagSize) b )
-let x2 = I.name_list "new f : n-1" ( new_f_ineq_exp (b.flagSize - 1) b )
-let x3 = I.name_list "new f : n-2" ( new_f_ineq_exp (b.flagSize - 2) b )
-let x4 = I.name_list "new f : n-3" ( new_f_ineq_exp (b.flagSize - 3) b )
+let x =
+  let f_ineqs i =
+    let name = Printf.sprintf "New f with flag size %d (type size %d)" i (i-1) in
+    I.name_list name  (new_f_ineq_exp i b) in
+  let res = ref [] in
+  for i = 3 to b.flagSize do
+    res := (f_ineqs i) :: !res
+  done;
+  List.concat !res
   
 let inequalities =
   List.concat
@@ -212,7 +217,7 @@ let inequalities =
 	expand b (at_least fork 0.) ];
       f_inequalities;
       multiply_and_unlabel b (at_least rooted_fork 0.);
-      x1; x2; x3; x4;
+      x;
       alpha_is_c0;
     ]
 
