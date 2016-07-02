@@ -140,9 +140,9 @@ struct
     }
       
   let all_rooted_basis n sigma =
-    let b_sigma = untyped_basis_id sigma in
+    let b_sigma = basis_id sigma in
     let m = get_size b_sigma in
-    list_init m ( fun i -> basis_id n sigma i )
+    list_init m ( fun i -> basis_id ~typeSize:sigma ~typeId:i n )
       
   let all_cs b =
     assert ( b.typeSize = 0 && b.typeId = 0 );

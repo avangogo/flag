@@ -27,7 +27,6 @@ sig
   (** {8 Creating a basis for this algebra } *)
   
   val basis_id : ?typeSize:int -> ?typeId:int -> int -> 'a basis_id
-  val untyped_basis_id : int -> t basis_id
 
   (** {8 Compute or load functions } *)
 				  

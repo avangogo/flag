@@ -29,9 +29,11 @@ let load_or_create create filename =
     load_marshal filename
   with
   | Not_found ->
-     Print.verbose ~color:Print.blue (Printf.sprintf "\nComputing file %s\n" filename);
+     Print.verbose ~color:Print.blue
+       (Printf.sprintf "\nComputing file %s\n" filename);
     let obj = create () in
-    Print.verbose ~color:Print.blue (Printf.sprintf "Writing in file %s... " filename);
+    Print.verbose ~color:Print.blue
+      (Printf.sprintf "Writing in file %s... " filename);
     save_marshal filename obj;
     Print.verbose ~color:Print.blue " Done\n";
     flush stdout;
@@ -46,7 +48,7 @@ let load_or_create create filename =
   | Not_found ->
     let x = load_or_create create filename in
     Hashtbl.add table filename (Obj.magic x);
-    x*)
+  x*)
 
 (* basis id's *)
 type 'a basis_id =
@@ -101,6 +103,22 @@ let untype_name id =
   Printf.sprintf "%s/untype_%d_type%d_id%d"
     (flag_dir id) id.flagSize id.typeSize id.typeId
 
+(* FIXME : TO BE MOVED *)
+let set_name set =
+  let int_name i =
+    let s = string_of_int i in
+    if String.length s <= 1 then s else "|"^s^"|" in
+  fst ( Array.fold_left
+	  (fun (s,i) b -> (s^(if b then (int_name i) else ""), i+1)) ("",0) set)
+    
+let part_untype_name id set =
+  Printf.sprintf "%s/partial_untype_%d_type%d_id%d_%s"
+    (flag_dir id) id.flagSize id.typeSize id.typeId (set_name set)
+
+let part_q_name id set =
+  Printf.sprintf "%s/partial_q_%d_type%d_id%d_%s"
+    (flag_dir id) id.flagSize id.typeSize id.typeId (set_name set)
+    
 (* tabulating and storing *)
 module Make ( Flag : Flag.S ) =
 struct
@@ -127,9 +145,6 @@ struct
       typeId = typeId
     }
 
-  let untyped_basis_id size =
-    basis_id size
-
   let check b =
     b.flagType = Flag.name
 
@@ -142,11 +157,11 @@ struct
     match id.flagSize, id.typeSize with
     | 1, 0 -> span_flags 1
     | n, 0 ->
-      let b = Array.to_list(get_basis (untyped_basis_id (n - 1))) in
+      let b = Array.to_list(get_basis (basis_id (n - 1))) in
       span_flags_next b
     | n, k ->
-      let bk = get_basis (untyped_basis_id k)
-      and bn = Array.to_list(get_basis (untyped_basis_id n)) in
+      let bk = get_basis (basis_id k)
+      and bn = Array.to_list(get_basis (basis_id n)) in
       span_all_typed bk.(id.typeId) bn
 
   and get_basis id =
@@ -200,7 +215,7 @@ struct
     load_or_create (fun () -> make_q id) (q_name id)
       
   let make_untype id =
-    let id0 = untyped_basis_id id.flagSize in
+    let id0 = basis_id id.flagSize in
     let b = get_basis id
     and b0 = get_basis id0 in
     let untype h = Common.array_search b0 (normal_form h) in 
@@ -209,10 +224,24 @@ struct
   let get_untype id =
     assert (check id);
     load_or_create (fun () -> make_untype id) (untype_name id)
+
+  let make_part_q id set = failwith "TODO"
+    
+  let get_part_q id set =
+    assert ( check id );
+    assert ( Array.length set = id.typeSize );
+    load_or_create (fun () -> make_part_q id set) (part_q_name id set)
+
+  let make_part_untype id = failwith "TODO"
+  
+  let get_part_untype id set =
+    assert ( check id );
+    assert ( Array.length set = id.typeSize );
+    load_or_create (fun () -> make_part_untype id set) (part_untype_name id set)
       
   (* not stored *)
   let sizeTbl = Hashtbl.create 10
-  let _ = Hashtbl.add sizeTbl (untyped_basis_id 0) 1
+  let _ = Hashtbl.add sizeTbl (basis_id 0) 1
 
   let get_size id =
     assert (check id);
