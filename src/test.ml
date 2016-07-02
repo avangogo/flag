@@ -124,7 +124,7 @@ module GenericStorageTest ( Flag : Flag.S ) =
       
     let test_get_basis i =
       test_ (Printf.sprintf "get_basis %d" i)
-	(S.get_basis (S.untyped_basis_id i) = Array.of_list (A.span_flags i))
+	(S.get_basis (S.basis_id i) = Array.of_list (A.span_flags i))
 	
     let tabulate_p tsize tid i j =
       let scale = Combinatoric.binomial (i - tsize) (j - tsize) in
@@ -140,7 +140,10 @@ module GenericStorageTest ( Flag : Flag.S ) =
 	
     let test_get_p tsize tid i j =
       test_ (Printf.sprintf "get_p %d in %d type%d id%d" i j tsize tid)
-	(Sparse.to_dense (S.get_p (S.basis_id i tsize tid) (S.basis_id j tsize tid)) = tabulate_p tsize tid i j)
+	(Sparse.to_dense (S.get_p
+			    (S.basis_id ~typeSize:tsize ~typeId:tid i)
+			    (S.basis_id ~typeSize:tsize ~typeId:tid j)
+	 ) = tabulate_p tsize tid i j)
 
     let tabulate_p2 tsize tid i j k =
       let scale = Combinatoric.binomial (i - tsize) (k - tsize) in
@@ -168,7 +171,10 @@ module GenericStorageTest ( Flag : Flag.S ) =
     let test_get_p2 tsize tid i j k =
       test_ (Printf.sprintf "get_p2 %d %d %d" i j k)
 	(tabulate_p2 tsize tid i j k =
-	    Array.map Sparse.to_dense (S.get_p2 (S.basis_id i tsize tid) (S.basis_id j tsize tid) (S.basis_id k tsize tid)))
+	    Array.map Sparse.to_dense (S.get_p2
+					 (S.basis_id ~typeSize:tsize ~typeId:tid i)
+					 (S.basis_id ~typeSize:tsize ~typeId:tid j)
+					 (S.basis_id ~typeSize:tsize ~typeId:tid k)))
 
   end
 
@@ -184,7 +190,7 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
       
     let test_ s = test (Printf.sprintf "%s : %s" Flag.name s)
       
-    let b n = S.basis_id n 0 0
+    let b n = S.basis_id n
     let basis_size b = Array.length (V.one b).vect
     let rand_type k = Random.int (basis_size (b k))
       
@@ -214,7 +220,7 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
 
     let test_neutral sigma k l =
       let typ = rand_type sigma in
-      let b n = S.basis_id n sigma typ in
+      let b n = S.basis_id ~typeSize:sigma ~typeId:typ n in
       let v = random (b l) in
       let v1 = V.multiply (V.one (b k)) v in
       let v2 = (V.expand (b (k+l-sigma)) v) in
@@ -222,7 +228,7 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
 
     let test_symetry sigma k l =
       let typ = rand_type sigma in
-      let b n = S.basis_id n sigma typ in
+      let b n = S.basis_id ~typeSize:sigma ~typeId:typ n in
       let v = random (b k)
       and w = random (b l) in
       test_eq (Printf.sprintf "product symetry %d-%d-%d" sigma k l)
@@ -230,7 +236,7 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
 	
     let test_eq1 sigma k l =
       let typ = rand_type sigma in
-      let b n = S.basis_id n sigma typ in
+      let b n = S.basis_id ~typeSize:sigma ~typeId:typ n in
       let v = random (b k)
       and w = random (b l) in
       let square x = V.multiply x x in
@@ -240,7 +246,7 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
 
     let test_eq2 sigma k l =
       let typ = rand_type sigma in
-      let b n = S.basis_id n sigma typ in
+      let b n = S.basis_id ~typeSize:sigma ~typeId:typ n in
       let v = random (b k)
       and w = random (b l) in
       let square x = V.multiply x x in

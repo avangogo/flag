@@ -232,7 +232,7 @@ struct
     assert ( Array.length set = id.typeSize );
     load_or_create (fun () -> make_part_q id set) (part_q_name id set)
 
-  let make_part_untype id = failwith "TODO"
+  let make_part_untype id set = failwith "TODO"
   
   let get_part_untype id set =
     assert ( check id );

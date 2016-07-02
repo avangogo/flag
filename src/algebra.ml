@@ -115,6 +115,33 @@ struct
   let normal_form_old g =
     let pi = Refine.make (Flag.size g) in
     normal_form_constraint_old g (equitable_partition pi g)
+
+  (* returns the moprhism p used insted of the normal form nf *)
+  (* p satisfies [apply_morphism p g = nf] *)
+  let rec deprecated_normal_form_morphism g pi =
+    let nfp e =
+      let pi_e = equitable_partition (individualize pi e) g in
+      deprecated_normal_form_morphism g pi_e in
+    let image p =
+      Flag.apply_morphism p g in
+    if is_discrete pi then
+      perm_of_refine pi (*apply pi g*) (*Flag.apply_morphism (perm_of_refine pi) g*)
+    else
+      begin
+	let s = choose_partition pi in
+	let e = ref (Refine.first pi s) in
+	let best_nfp = ref (nfp !e) in
+	try
+	  while e := Refine.next pi !e; !e <> -1 do
+	    let nfp_e = nfp !e in
+	    if image nfp_e > image !best_nfp then
+	      best_nfp := nfp_e
+	  done; failwith "toto"
+	with
+	|_ ->
+	   !best_nfp
+      end
+	
       
   (* ** generating automorphisms with the same technic ** *)
       
@@ -403,6 +430,17 @@ struct
     let nom = q_nom k g
     and denom = q_denom k (Flag.size g) in
     Rational.make nom denom
+
+  (* unlabeling factor for partial unlabeling *)
+      
+  (* partial unlabeling *)
+      
+  (* g is a flag and p an injection of the type *)
+  let partial_unlabel g p =
+    let sigma = Array.length p in
+    let q = permutation_of_injection p (Flag.size g) in
+    let g' = Flag.apply_morphism q g in
+    normal_form_typed sigma g'
       
   (********* Spanning flags **********)
       
@@ -422,7 +460,7 @@ struct
     let treat smallflag =
       List.iter record (Flag.superflags smallflag) in
     List.iter treat l;
-    FlagSet.elements !set;;
+    FlagSet.elements !set
   
   let span_flags_iterative n =
     let rec aux l = function
