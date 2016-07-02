@@ -12,7 +12,7 @@ open Vect (* Contains the infix operators +~, -~ and *~ on vectors *)
 open I
 
 (* Basis on which we build the sdp problem *)
-let b = S.untyped_basis_id 6 (* <- max size of flags *)
+let b = S.basis_id 6 (* <- max size of flags *)
 
 (* Constant in the conjecture *)
 let c0 = 0.3425
@@ -74,10 +74,10 @@ let has_dominated_vertex g =
 let f_inequalities =
   let res = ref [] in
   let n = b.flagSize - 1 in
-  let types = S.get_basis (S.untyped_basis_id n) in
+  let types = S.get_basis (S.basis_id n) in
   for i = 0 to (Array.length types) - 1 do
     if has_dominated_vertex types.(i) then
-      let i = f_inequality (S.basis_id (n+1) n i) in
+      let i = f_inequality (S.basis_id ~typeSize:n ~typeId:i (n+1)) in
       res := i :: !res
   done;
   !res
@@ -88,7 +88,7 @@ let f_inequalities =
 for evey graph g and and every vertex v of g of indegree size of g - 1
 where id_g is the identificator of g and ind the in neighbourhood of v *)
 let types_with_pseudo_dominated_vertex size =
-  let b = S.untyped_basis_id size in
+  let b = S.basis_id size in
   let flags = S.get_basis b in (* graphs of size [size] *)
   let res = ref [] in (* result container *)
   for i = 0 to (Array.length flags) - 1 do
@@ -109,7 +109,7 @@ let indicator ind sigma g =
     
 let new_f typesize (i, ind) =
   let n = typesize + 1 in
-  let b = S.basis_id n typesize i in
+  let b = S.basis_id ~typeSize:typesize ~typeId:i n in
   let sum = Vect.make ~name:"pseudo sigma sources" b (indicator ind) in
   let x_f0 = Vect.scalar_mul ~name:"(c0 - 1)" (c0 -. 1.) (f0 b) in
   let c0_one = Vect.scalar_mul ~name:"c0" c0 (Vect.one b) in
@@ -128,8 +128,8 @@ let new_f_ineq_exp n b =
     
 (* constructing indV and indT *)
 
-let b3 = S.untyped_basis_id 3
-let b4 = S.untyped_basis_id 4
+let b3 = S.basis_id 3
+let b4 = S.basis_id 4
 
 (*
 let iT = S.id_flag b3 (Digraph.make 3 [|(0,1);(1,2);(0,2)|])
@@ -143,8 +143,8 @@ let indV = ind iV 3
   let indT = ind iT 3*)
   
 (* flags rooted on one vertex *)
-let b2_1 = S.basis_id 2 1 0
-let b3_1 = S.basis_id 3 1 0
+let b2_1 = S.basis_id ~typeSize:1 ~typeId:0 2
+let b3_1 = S.basis_id ~typeSize:1 ~typeId:0 3
 let alpha = Vect.flag ~name:"alpha" b2_1 (Digraph.make 2 [|(0,1)|])
 let chi = Vect.flag ~name:"chi" b3_1 (Digraph.make 3 [|(0,1);(0,2)|])
   
@@ -191,7 +191,7 @@ let alpha_is_c0 =
   name_list "Outdegree is c0"
     (List.concat (List.map equality
 		    (multiply_and_unlabel b (alpha_geq_c0))))
-
+    
 let _ = tac "Outdegree is c0"
     
 (* ******* Construction of the problem ********* *)
@@ -221,7 +221,7 @@ let inequalities =
       alpha_is_c0;
     ]
 
-let b2 = S.untyped_basis_id 2
+let b2 = S.basis_id 2
 let edge = Vect.flag ~name:"edge" b2 (Digraph.make 2 [|(0, 1)|])
 let obj = Vect.expand b (Vect.scalar_mul (-1.) edge)
 
