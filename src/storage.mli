@@ -37,6 +37,9 @@ sig
   val get_untype : t basis_id -> int array
   val get_size : t basis_id -> int
 
+  val get_part_q : int -> int -> t basis_id -> int array
+  val get_part_untype : int -> int -> t basis_id -> int array
+                                 
   val get_p_denom : t basis_id -> t basis_id -> int
   val get_p2_denom : t basis_id -> t basis_id -> t basis_id -> int
   val get_q_denom : t basis_id -> int

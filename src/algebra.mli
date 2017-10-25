@@ -10,6 +10,7 @@ sig
   val normal_form_old : Flag.t -> Flag.t
   val normal_form : Flag.t -> Flag.t
   val normal_form_typed : int -> Flag.t -> Flag.t
+  val bad_normal_form_typed_morphism : int -> Flag.t -> int array
     
   val iter_on_automorphisms : (int array -> unit) -> Flag.t -> unit
   val automorphisms : Flag.t -> int array list
@@ -20,7 +21,7 @@ sig
   val p : int -> Flag.t -> Flag.t -> Rational.t
   val p2 : int -> Flag.t -> Flag.t -> Flag.t -> Rational.t
   val q : int -> Flag.t -> Rational.t
-
+                             
   (** Optimized functions *)
     
   val p2_tabulate : int -> Flag.t array ->
@@ -32,6 +33,9 @@ sig
   val p_denom : int -> int -> int -> int
   val p2_denom : int -> int -> int -> int
   val q_denom : int -> int -> int
+  val part_q_denom : int -> int -> int -> int
+                                
+  val canonical_untype_tabulate : int -> Flag.t -> Flag.t array -> Flag.t array -> int array
 
   (** {8 Flags generation } *)
   val span_flags : int -> Flag.t list

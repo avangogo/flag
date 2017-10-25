@@ -54,7 +54,12 @@ struct
   let test_nf_typed_1 f =
     test_ "normal_form_typed sigma=0"
       (A.normal_form f = A.normal_form_typed 0 f)
-  
+
+  let test_nf_morph i f =
+    test_ "normal_form_morph"
+      (let phi = A.bad_normal_form_typed_morphism i f in
+       A.normal_form_typed i f = Flag.apply_morphism phi f)
+      
   let test_sg n =
     test_ (Printf.sprintf "span_flags: %d vs %d+1" n (n-1))
       (A.span_flags n = A.span_flags_next (A.span_flags (n-1)))
@@ -96,12 +101,13 @@ struct
     let pick () = list_nth_first i (randomize_list l) in
     List.iter test_nf  (pick ());
     List.iter test_nf_typed_1 (pick ());
-    List.iter test_nf_random (pick ())
+    List.iter test_nf_random (pick ());
+    List.iter (test_nf_morph 1) (pick ());
+    List.iter (test_nf_morph 2) (pick ())
 
   let auto_tests () =
     auto_tests_size_n 5 2;
     auto_tests_size_n 5 3;
-(*    auto_tests_size_n 5 4; *)
 
 end
 

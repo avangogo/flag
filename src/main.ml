@@ -12,10 +12,10 @@ open Vect (* Contains the infix operators +~, -~ and *~ on vectors *)
 open I
 
 (* Basis on which we build the sdp problem *)
-let b = S.basis_id 6 (* <- max size of flags *)
+let b = S.basis_id 5 (* <- max size of flags *)
 
 (* Constant in the conjecture *)
-let c0 = 0.3425
+let c0 = 0.3334
 
 (* **** sigma_sources ***** *)
 
@@ -54,8 +54,6 @@ let in_nbrhd_indicator g v =
   Array.iter (function (u,w) -> if w=v then res.(u) <- true) g.e;
   res
 
-
-
     
 (*  *)
 let f basis =
@@ -65,7 +63,7 @@ let f basis =
   sum +~ x_f0 -~ c0_one
 
 let f_inequality basis =
-  at_least (Vect.untype (f basis)) 0.
+  at_least (f basis) 0.
 
 (* *)
 let has_dominated_vertex g =
@@ -191,6 +189,20 @@ let alpha_is_c0 =
   name_list "Outdegree is c0"
     (List.concat (List.map equality
 		    (multiply_and_unlabel b (alpha_geq_c0))))
+
+let alpha_is_c0_bis =
+  let rec alpha_power = function
+    | 1 -> alpha
+    | n -> alpha *~ (alpha_power (n-1)) in
+  let ineq k =
+    at_least (alpha_power k) (c0 ** (float_of_int k)) in
+  let rec ineqs = function
+    | 0 -> []
+    | k -> (ineq k)::(ineqs (k-1)) in
+  let equalities =
+    List.concat (List.map equality (ineqs (b.flagSize - 1))) in
+  let equalities2 = List.concat (List.map (multiply_and_unlabel b) equalities) in
+  name_list "Outdegree is c0" equalities2
     
 let _ = tac "Outdegree is c0"
     
@@ -200,31 +212,44 @@ let cauchy_schwartz = Solve.all_cs b
 let x =
   let f_ineqs i =
     let name = Printf.sprintf "New f with flag size %d (type size %d)" i (i-1) in
-    I.name_list name  (new_f_ineq_exp i b) in
+    I.name_list name (new_f_ineq_exp i b) in
   let res = ref [] in
   for i = 3 to b.flagSize do
     res := (f_ineqs i) :: !res
   done;
   List.concat !res
-  
+
+let y =
+  List.concat (List.map (multiply_and_unlabel b) (f_inequalities))
+              
 let inequalities =
   List.concat
     [
       all_flags_nonnegative b;
       equality (totalsum b);
-      [ (* expand b (at_least indV 0.); *)
-	(* expand b (at_least indT 0.); *)
+      [ (* expand b (at_least indV 0.);
+	expand b (at_least indT 0.); *)
 	expand b (at_least fork 0.) ];
-      f_inequalities;
+      (*     f_inequalities;*)
       multiply_and_unlabel b (at_least rooted_fork 0.);
-      x;
+      (* x; *)
+      y;
+      (* alpha_is_c0_bis; *)
       alpha_is_c0;
     ]
 
 let b2 = S.basis_id 2
 let edge = Vect.flag ~name:"edge" b2 (Digraph.make 2 [|(0, 1)|])
-let obj = Vect.expand b (Vect.scalar_mul (-1.) edge)
+let c5 =  Vect.flag ~name:"c5" {b with flagSize = 5}
+                    (Digraph.make 5 [|(0, 1);(1, 2);(2, 3);(3, 4);(4, 0)|])
+let p5 =  Vect.flag ~name:"p5" {b with flagSize = 5}
+                    (Digraph.make 5 [|(0, 1);(1, 2);(2, 3);(3, 4)|])
+let c4 =  Vect.flag ~name:"c4" {b with flagSize = 4}
+                    (Digraph.make 4 [|(0, 1);(1, 2);(2, 3);(3, 0)|])
+let obj = Vect.expand b (Vect.scalar_mul (-1.) c4)
 
-let _ = Solve.solve "ch" cauchy_schwartz inequalities obj
+let filename = Printf.sprintf "ch%f" c0
+  
+let _ = Solve.solve filename cauchy_schwartz inequalities obj
 
 (*  S.basis_id *)

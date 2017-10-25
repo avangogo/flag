@@ -117,11 +117,12 @@ struct
     normal_form_constraint_old g (equitable_partition pi g)
 
   (* returns the moprhism p used insted of the normal form nf *)
-  (* p satisfies [apply_morphism p g = nf] *)
-  let rec deprecated_normal_form_morphism g pi =
+  (* p satisfies [apply_morphism p g = (normal form of g)] *)
+  let rec bad_normal_form_morphism_constraint g pi0 =
+    let pi = equitable_partition pi0 g in
     let nfp e =
-      let pi_e = equitable_partition (individualize pi e) g in
-      deprecated_normal_form_morphism g pi_e in
+      let pi_e = individualize pi e in
+      bad_normal_form_morphism_constraint g pi_e in
     let image p =
       Flag.apply_morphism p g in
     if is_discrete pi then
@@ -142,7 +143,11 @@ struct
 	   !best_nfp
       end
 	
-      
+  let bad_normal_form_typed_morphism sigma g =
+    let pi = Refine.make_with_fixed_begin (Flag.size g) sigma in
+    bad_normal_form_morphism_constraint g pi
+
+                                        
   (* ** generating automorphisms with the same technic ** *)
       
   (* apply f to all permutations that is an automorphism of g *)
@@ -234,7 +239,128 @@ struct
   let normal_form_typed sigma g =
     let pi = Refine.make_with_fixed_begin (Flag.size g) sigma in
     normal_form_constraint g pi
+
+  (***** Partial untyping *****)
+  (* given a (possibly not in normal form) flag [g] and a subset [set] of vertices
+   of g,
+  [unlabel_morphism g set] returns a permutation [pi] such that
+  [apply pi g] is a proper representation (i.e. with the type in the begining) of
+   the flag [g] with type [set] that is on normal form and such that its type is
+   in normal form *)
+
+  let size_set set =
+    let res = ref 0 in
+    Array.iter (fun b -> if b then incr res) set;
+    !res
+
+  let injection_of_indicator set =
+    let n = size_set set in
+    let i = ref 0 in
+    let res = Array.make n (-1) in
+    Array.iteri (fun j b -> if b then (res.(!i) <- j; incr i)) set;
+    res
+     
+  (* returns a parmutation of {1,.., size of set} such that elements of
+set are mapped to {1,2,3,...} *)
+  let morphism_of_indicator set =
+    let n = size_set set in
+    let i = ref (-1)
+    and j = ref (n - 1) in
+    Array.map (fun b -> if b then (incr i; !i) else (incr j; !j)) set
+
+  (* [induce_type sigma g] returns the type of g (of size sigma) as a flag *)
+  let induce_type sigma g =
+    Flag.induce (Array.init sigma (fun i -> i)) g
+
+  (* [extend_permutation p n] returns the permutation on {1,..,[n]} which is
+   equal to [p] in {1,...,Array.size p} and the identity on larger numbers *)
+  let extend_permutation p n =
+    let k = Array.length p in
+    Array.init n (fun i -> if i < k then p.(i) else i)
+
+  (* from a set as a bool array to int (with bits) *)
+  let encode set =
+    Array.fold_right (fun b x -> 2*x + if b then 1 else 0) set 0
+
+  (* int (array of bits) to bool array *)
+  let decode n x =
+    let res = Array.make n false in
+    let y = ref x in
+    for i = 0 to n - 1 do
+      res.(i) <- !y mod 2 = 1;
+      y := !y/2
+    done;
+    res
       
+  (* returns a morphism p : [n] -> [n] such that
+      (a) p(set) = {1,..,k}
+      (b) the subflag of p(g) induced by {1,..,k} is canonical
+      (c) the flag p(g) with type {1,..,k} is canonical
+   *) 
+  let unlabel_morphism g set =
+    let n = Flag.size g
+    and k = size_set set in
+    (* p1 satisfies (a) *)
+    let p1 = morphism_of_indicator set in
+    let g1 = Flag.apply_morphism p1 g in
+    let gtype = induce_type k g1 in
+    let qtype = bad_normal_form_typed_morphism 0 gtype in
+    let q = extend_permutation qtype n in
+    (* p2 satisfies (b) *)
+    let p2 = Combinatoric.compose q p1 in
+    let g2 = Flag.apply_morphism p2 g in
+    let r = bad_normal_form_typed_morphism k g2 in
+    (* p3 statisfies (c) *)
+    let p3 = Combinatoric.compose r p2 in
+    p3
+
+  (* consider the canonical untype operation phi *)
+  (* where id3 : size n, type k, typeid id2 *)
+  (*       id2 : size k, no type *)
+  (* and   id1 : size n, no type *)
+  (* phi : ( m, n, id1 ) -> ( m, k, id2 ) *)
+
+  let part_untype_tabulate k g3 g_array h_array =
+    assert ( g_array <> [||] );
+    assert ( h_array <> [||] );
+    assert ( Flag.size g_array.(0) = Flag.size h_array.(0) );
+    let m = Flag.size g_array.(0) in 
+    let phi0 = bad_normal_form_typed_morphism k g3 in
+    let psi = extend_permutation (invert phi0) m in
+    let id_untyped g =
+      let h = normal_form_typed k (Flag.apply_morphism psi g) in
+      Common.array_search h_array h in
+    Array.map id_untyped g_array
+                                
+  (*
+  let canonical_untype sigma2 sigma1 g =
+    assert (sigma2 >= sigma1);
+    normal_form_typed sigma1 g
+                      
+  (* *)
+  let canonical_untype_tabulate k g_array h_array =
+    assert ( g_array <> [||] );
+    assert ( h_array <> [||] );
+(*    let m = Flag.size g_array.(0)
+    and n = Flag.size h_array.(0) in*)
+    let id_untyped g =
+      let h = normal_form_typed k g in
+      Common.array_search h_array h in
+    Array.map id_untyped g_array
+   *)
+              
+  let canonical_untype_tabulate k f3 g_array h_array =
+    assert ( g_array <> [||] );
+    assert ( h_array <> [||] );
+    assert ( Flag.size g_array.(0) = Flag.size h_array.(0) );
+    let m = Flag.size g_array.(0) in 
+    let phi0 = bad_normal_form_typed_morphism k f3 in
+    let psi = extend_permutation (invert phi0) m in
+    let id_untyped g =
+      let h = normal_form_typed k (Flag.apply_morphism psi g) in
+      Common.array_search h_array h in
+    Array.map id_untyped g_array
+                           
   (************ Razborov functions **************)
       
   (* ** combinatorics ** *)
@@ -416,7 +542,11 @@ struct
   let p2_denom sigma k1 n = binomial (k1 - sigma) (n - sigma)
 
   let q_denom sigma n = (binomial sigma n) * (fact sigma)
-      
+
+  let part_q_denom sigma1 sigma2 n =
+    assert ( sigma1 >= sigma2 );
+    q_denom ( sigma1 - sigma2 ) ( n - sigma2 )
+                                               
   (* unlabeling factor *)
   let q_nom k g =
     let acc = ref [] in

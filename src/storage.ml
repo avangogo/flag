@@ -104,20 +104,33 @@ let untype_name id =
     (flag_dir id) id.flagSize id.typeSize id.typeId
 
 (* FIXME : TO BE MOVED *)
+(*
 let set_name set =
   let int_name i =
     let s = string_of_int i in
     if String.length s <= 1 then s else "|"^s^"|" in
   fst ( Array.fold_left
-	  (fun (s,i) b -> (s^(if b then (int_name i) else ""), i+1)) ("",0) set)
+	  (fun (s,i) b -> (s^(if b then (int_name i) else ""), i+1)) ("",0) set)*)
     
-let part_untype_name id set =
+    (* let part_untype_name id set =
   Printf.sprintf "%s/partial_untype_%d_type%d_id%d_%s"
-    (flag_dir id) id.flagSize id.typeSize id.typeId (set_name set)
+    (flag_dir id) id.flagSize id.typeSize id.typeId (set_name set)*)
 
-let part_q_name id set =
+    (* let part_q_name id set =
   Printf.sprintf "%s/partial_q_%d_type%d_id%d_%s"
-    (flag_dir id) id.flagSize id.typeSize id.typeId (set_name set)
+    (flag_dir id) id.flagSize id.typeSize id.typeId (set_name set)*)
+
+(* CANONICAL partial untyping *)
+(* id : image base *)
+(* flag : representation of the untyping *)
+(*  *)
+let part_untype_name flag_id n id =
+  Printf.sprintf "%s/partial_untype_s%d_f%d_to_%d_type%d_id%d"
+                 (flag_dir id) n flag_id id.flagSize id.typeSize id.typeId
+
+let part_q_name flag_id n id =
+  Printf.sprintf "%s/partial_q_s%d_f%d_to_%d_type%d_id%d"
+                 (flag_dir id) n flag_id id.flagSize id.typeSize id.typeId
     
 (* tabulating and storing *)
 module Make ( Flag : Flag.S ) =
@@ -224,21 +237,44 @@ struct
   let get_untype id =
     assert (check id);
     load_or_create (fun () -> make_untype id) (untype_name id)
-
-  let make_part_q id set = failwith "TODO"
-    
-  let get_part_q id set =
+                                           
+  (* see doc.pdf -> canonical partial unlabeling *)
+  let make_part_untype f3_id n id2 =
+    let k = id2.typeSize
+    and m = id2.flagSize in
+    let f3_basis = { id2 with flagSize = n } in
+    let f1_id = (get_untype f3_basis).(f3_id) in
+    let id1 = basis_id ~typeSize:n ~typeId:f1_id m in
+    let f3 = (get_basis f3_basis).(f3_id) in
+    let b1 = get_basis id1
+    and b2 = get_basis id2 in
+    canonical_untype_tabulate k f3 b1 b2
+                                                
+  let get_part_untype flag_id n id =
     assert ( check id );
-    assert ( Array.length set = id.typeSize );
-    load_or_create (fun () -> make_part_q id set) (part_q_name id set)
+    assert ( id.typeSize <= n && n <= id.flagSize  );
+    load_or_create (fun () -> make_part_untype flag_id n id)
+                   (part_untype_name flag_id n id)
 
-  let make_part_untype id set = failwith "TODO"
-  
-  let get_part_untype id set =
+  let make_part_q f3_id n id2 =
+    let m = id2.flagSize in
+    let f3_basis = { id2 with flagSize = n } in
+    let f1_id = (get_untype f3_basis).(f3_id) in
+    let id1 = basis_id ~typeSize:n ~typeId:f1_id m in
+    let untype = get_part_untype f3_id n id2
+    and q1 = get_q id1
+    and q2 = get_q id2 in
+    let r_nom = (part_q_denom id1.typeSize id2.typeSize m)*(q_denom id2.typeSize m)
+    and r_denom = q_denom id2.typeSize m in
+    Array.mapi (fun h1 h2 -> ( q1.(h1) * r_nom ) / ( q2.(h2) * r_denom )) untype
+                                           
+  let get_part_q flag_id n id =
     assert ( check id );
-    assert ( Array.length set = id.typeSize );
-    load_or_create (fun () -> make_part_untype id set) (part_untype_name id set)
-      
+    assert ( id.typeSize <= n );
+    assert ( n <= id.flagSize  );
+    load_or_create (fun () -> make_part_q flag_id n id)
+                   (part_q_name flag_id n id)
+                   
   (* not stored *)
   let sizeTbl = Hashtbl.create 10
   let _ = Hashtbl.add sizeTbl (basis_id 0) 1
