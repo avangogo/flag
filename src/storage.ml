@@ -3,8 +3,6 @@ open Common
 (* reading/writing files *)
 let dir = "save/"
 
-(*let _ = if not (Sys.file_exists dir) then Unix.mkdir dir 0o644*)
-
 let save_marshal filename obj =
   let name = Printf.sprintf "%s%s" dir filename in
   let outChannel = open_out name in
@@ -38,17 +36,6 @@ let load_or_create create filename =
     Print.verbose ~color:Print.blue " Done\n";
     flush stdout;
     obj
-
-(*let table = Hashtbl.create 10
-
-let load_or_create create filename =
-  try 
-    Obj.magic (Hashtbl.find table filename)
-  with
-  | Not_found ->
-    let x = load_or_create create filename in
-    Hashtbl.add table filename (Obj.magic x);
-  x*)
 
 (* basis id's *)
 type 'a basis_id =
@@ -103,6 +90,11 @@ let untype_name id =
   Printf.sprintf "%s/untype_%d_type%d_id%d"
     (flag_dir id) id.flagSize id.typeSize id.typeId
 
+let p2untype_name id1 id2 id3 =
+  Printf.sprintf "%s/p2untype_%d_%din%d_type%d_id%d"
+    (flag_dir id1) id1.flagSize id2.flagSize id3.flagSize id1.typeSize id1.typeId
+    
+    
 (* FIXME : TO BE MOVED *)
 (*
 let set_name set =
@@ -170,8 +162,8 @@ struct
     match id.flagSize, id.typeSize with
     | 1, 0 -> span_flags 1
     | n, 0 ->
-      let b = Array.to_list(get_basis (basis_id (n - 1))) in
-      span_flags_next b
+       let b = Array.to_list(get_basis (basis_id (n - 1))) in
+       span_flags_next b
     | n, k ->
       let bk = get_basis (basis_id k)
       and bn = Array.to_list(get_basis (basis_id n)) in
@@ -190,7 +182,7 @@ struct
       p_tabulate k b1 b2
     | k when k > 1 -> 
        let id3 =
-	 basis_id ~typeSize:(id1.flagSize+1) ~typeId:id1.typeSize id1.typeId in
+	 basis_id ~typeSize:id1.typeSize ~typeId:id1.typeId (id1.flagSize+1) in
        let p13 = get_p id1 id3
        and p32 = get_p id3 id2 in
        let scale =
@@ -237,7 +229,23 @@ struct
   let get_untype id =
     assert (check id);
     load_or_create (fun () -> make_untype id) (untype_name id)
-                                           
+
+  let make_p2untype id1 id2 id3 =
+    let id3_typed = { id3 with typeSize = id1.typeSize; typeId = id1.typeId } in
+    let p2 = get_p2 id1 id2 id3_typed in
+    let q = get_q id3_typed in
+    let untype = get_untype id3_typed in
+    let n = Array.length (get_basis id3) in
+    let rev_untype = Combinatoric.pre_image n untype in
+    Array.map (fun select -> Sparse.linear_combination select q p2) rev_untype
+              
+  let get_p2untype id1 id2 id3 =
+    assert ( check id1 && check id2 && check id3 );
+    assert ( same_type id1 id2 );
+    assert ( id3 = untype_basis ( mul_basis id1 id2 ) );
+    load_or_create (fun () -> make_p2untype id1 id2 id3) (p2untype_name id1 id2 id3)
+
+                   
   (* see doc.pdf -> canonical partial unlabeling *)
   let make_part_untype f3_id n id2 =
     let k = id2.typeSize
@@ -279,7 +287,7 @@ struct
   let sizeTbl = Hashtbl.create 10
   let _ = Hashtbl.add sizeTbl (basis_id 0) 1
 
-  let get_size id =
+  let get_size (id : Flag.t basis_id) =
     assert (check id);
     try
       Hashtbl.find sizeTbl id

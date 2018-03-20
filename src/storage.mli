@@ -35,6 +35,7 @@ sig
   val get_p2 : t basis_id -> t basis_id -> t basis_id -> Sparse.t array
   val get_q : t basis_id -> int array
   val get_untype : t basis_id -> int array
+  val get_p2untype : t basis_id -> t basis_id -> t basis_id -> Sparse.t array
   val get_size : t basis_id -> int
 
   val get_part_q : int -> int -> t basis_id -> int array

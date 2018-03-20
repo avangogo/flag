@@ -11,6 +11,7 @@ type ('a, 'b) inequality = {
   name : string option;
   flags : ('a, 'b) Vectors.vector;
   bound : 'a;
+  boundName : string option
 }
 
 (** [map f ineq] applies [f] on scalar coefficients of [ineq] and returns the result *)
@@ -31,7 +32,7 @@ sig
   (** [equality ineq] where [ineq] means "f >= x"
       returns the list \["f >= x"; "f <= x"\]
       (so that their conjunction means "f = x"). *)
-  val equality : ineq -> ineq list
+  val equality : ?epsilon:F.t ->  ineq -> ineq list
   
   (** [untype ineq] where [ineq] means "f >= x" and f is a rooted
       quantum flag returns the unrooted projection "\[f\] >= x" of the

@@ -1,5 +1,5 @@
 CAMLC = ocamlc -g
-CAMLOPT = ocamlopt #-p -inline 20 -nodynlink -unsafe # -noassert
+CAMLOPT = ocamlopt -p #-inline 20 -nodynlink -unsafe # -noassert
 CAMLDOC = ocamldoc -html -keep-code
 MKTOP = ocamlmktop
 #CAMLLEX = ocamllex
@@ -12,7 +12,7 @@ COMMANDS = \
 #	   -package camomile \
 #	   -linkpkg 
 
-LIBS = nums.cma graphics.cma unix.cma
+LIBS = nums.cma graphics.cma unix.cma str.cma
 LIBS_OPT = $(patsubst %.cma,%.cmxa,$(LIBS))
 
 EXEC = toto
@@ -20,8 +20,10 @@ MAIN = main
 TEST = test
 TEST_EXEC = .test
 TOPLEVEL = toplevel
+EXAMPLE = example
+EXAMPLE_EXEC = example
 
-RAW_OBJS = param.cmo common.cmo print.cmo combinatoric.cmo rational.cmo field.cmo prettyprinting.cmo refine.cmo sdp.cmo sparse.cmo flag.cmo graphic.cmo algebra.cmo graph.cmo graph_mod.cmo digraph.cmo trianglefree.cmo storage.cmo latexify.cmo vectors.cmo inequality.cmo solve.cmo
+RAW_OBJS = param.cmo common.cmo print.cmo combinatoric.cmo rational.cmo field.cmo prettyprinting.cmo refine.cmo sdp.cmo sparse.cmo flag.cmo graphic.cmo algebra.cmo cgraph.cmo graph.cmo graph_mod.cmo digraph.cmo trianglefree.cmo storage.cmo latexify.cmo vectors.cmo inequality.cmo problem.cmo
 OBJS = $(addprefix ${COMPILE}/,${RAW_OBJS}) 
 MAIN_OBJ = ${COMPILE}/${MAIN}.cmo
 MAIN_OBJ_OPT = ${COMPILE}/${MAIN}.cmx
@@ -65,6 +67,13 @@ latex:
 
 test: ${TEST_EXEC}
 	@./${TEST_EXEC}
+
+example: ${OBJS} compile/example.cmo
+	@${CAMLC} ${LIBS} ${OBJS} compile/example.cmo -o ${EXAMPLE_EXEC}
+
+example.opt: ${OBJS_OPT} compile/example.cmx
+	@${CAMLOPT} ${LIBS_OPT} ${OBJS_OPT} compile/example.cmx -o example.opt
+#	./${EXAMPLE_EXEC}
 
 doc : $(OBJS)
 	@$(CAMLDOC) $(INCLUDE) -d $(DOC) compile/*.ml compile/*.mli

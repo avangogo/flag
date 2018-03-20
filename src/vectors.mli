@@ -41,7 +41,11 @@ sig
     
   (** Alias for multiply *)
   val ( *~ ) : vect -> vect -> vect
-    
+
+  val multiply_and_unlabel : vect -> vect -> vect
+      
+  val multiply_and_unlabel_all : vect array -> vect array -> vect array array
+                                 
   (** Scalar multiplication of the vector space structure.
   The optional name is the name of the scalar.*)
   val scalar_mul : ?name:string -> F.t -> vect -> vect

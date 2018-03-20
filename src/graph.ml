@@ -94,10 +94,9 @@ let draw ?root:(root=0) g i j c =
     if i < root then Graphics.set_color Graphics.red;
     let xi, yi = pos i in
     Graphics.fill_circle xi yi (max 2 (c/20));
-    if draw_label
+    if draw_label || (i < root) 
     then begin
       Graphics.moveto xi yi;
-      Graphics.draw_string (Printf.sprintf "  %d" i)	
       end;
     Graphics.set_color Graphics.black
   done

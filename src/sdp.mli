@@ -20,9 +20,19 @@ val matrix_of_sparseblock : 'a -> int -> 'a sparseblock -> 'a array array
 
 val sparseblock_map : ('a -> 'b) -> 'a sparseblock -> 'b sparseblock
 
+                                                         
+(** The problem (t, C, (Ai), (ai)) corresponds to
+maximizing A ** X 
+under Ai ** X = ai for every i
+and X s.d.p.
+t is the array of types of the blocks *)                  
 type sdp_problem =
   block_type array * float matrix * float matrix array * float array
 
 (* write_prob file c ctype a b *)
 val write_prob :
   string -> sdp_problem -> unit
+
+val load_certificate : string -> float array * float matrix array
+
+val multiply_matrices_float : float matrix -> float matrix -> float

@@ -1,255 +1,133 @@
 (* Caccetta-Haggkvist *)
 
 open Digraph
-open Vectors
 open Storage
-
 module S = Storage.Make (Trianglefree)
 module I = Inequality.Make (Field.Float) (Trianglefree)
-module Vect = Vectors.Vect (Field.Float) (Trianglefree)
-module Solve = Solve.Make (Trianglefree) (Field.Float)
-open Vect (* Contains the infix operators +~, -~ and *~ on vectors *)
+module V = Vectors.Vect (Field.Float) (Trianglefree)
+module Problem = Problem.Make (Field.Float) (Trianglefree)
+open V
 open I
+     
+(* **** Parameters **** *)
+let flagSize = 6 (* Size of the flags used *)
+let c  = 0.3392  (* Constant for which we prove the result *)
+let c1 = 0.3465  (* Constant for which we know it holds *)
 
 (* Basis on which we build the sdp problem *)
-let b = S.basis_id 5 (* <- max size of flags *)
+let b = S.basis_id flagSize
+           
+(* **** Computing Inequalities of Theorem %%\ref{thm:CH:inequalities}% **** *)
+                   
+(* ==== 1. Degree is c ==== *)
 
-(* Constant in the conjecture *)
-let c0 = 0.3334
+let outedge =
+  let basis2_1 = S.basis_id ~typeSize:1 ~typeId:0 2 in
+  V.flag ~name:"outedge" basis2_1 (Digraph.make 2 [|(0,1)|])
+         
+let outdegree_geq_c = { ( at_least outedge c )
+                      with boundName = Some "c" }
+                               
+let outdegree_is_c =
+  let ineqs = multiply_and_unlabel b (outdegree_geq_c) in
+  name_list "1. Outdegree is c"
+    (List.concat (List.map (equality ~epsilon:1e-11) ineqs))
+                   
+(* ==== 2. Density of forks is at least 3(3c-1)^2/a ==== *)
 
-(* **** sigma_sources ***** *)
+(* Constant for the Chudnovsky-Seymour-Sullivan conjecture *)
+let a = 0.88
+          
+(* basis of flags of size 3 *)
+let b3 = S.basis_id 3
+          
+(* fork *)
+let fork =
+  V.flag ~name:"fork" b3 (Digraph.make 3 [|(0,1);(0,2)|])
 
-(* the function f *)
-(* sum of sigma sources *)
-let is_a_sigma_source sigma flag = (* sigma is the size of the type *)
+let fork_ineq =
+  let x = 3. *. c -. 1. in
+  let y = (3. *. x *. x) /. a in
+  { ( at_least fork y )
+  with name = Some "2. Fork" ;
+       boundName = Some "3*(3c-1)^2/a" }
+    
+(* ==== 3. [|f(sigma)F|] >= 0 for every sigma-source ==== *)
+            
+(* Determine if the flag in input is a sigma-source *)
+let is_a_sigma_source typeSize flag =
   let edge_condition (i, j) =
-    not (i >= sigma && j < sigma) in
+    not (i >= typeSize && j < typeSize) in
   Common.array_for_all edge_condition flag.e
 
+(* Return the sum of sigma sources of the basis in input *)
 let sum_of_sigma_sources basis =
-  let indicator sigma f =
-    if (is_a_sigma_source sigma f) then 1. else 0. in
-  Vect.make ~name:"sigma sources" basis indicator
-
-(* building f0 *)
-let f0_flag sigma_flag = (* sigma is a type represented by a flag *)
+  let indicator typeSize f =
+    if is_a_sigma_source typeSize f then 1. else 0. in
+  V.make ~name:"Sigma sources" basis indicator
+         
+(* Build the graph f0 obtained by adding a sink to sigma *)
+let f0_flag sigma_flag =
   let n = sigma_flag.n in
-  let edges = Array.concat [sigma_flag.e; Array.init n (fun i -> (i, n))] in
+  let new_edges =  Array.init n (fun i -> (i, n)) in
+  let edges = Array.concat [sigma_flag.e; new_edges] in
   Digraph.make (n+1) edges
 
-(* Returns the type of the basis (as a graph) *)
+(* Recover the type of this basis in input (as a graph) *)
 let get_type basis =
-  let type_basis = { basis with flagSize = basis.typeSize } in
-  (S.get_basis type_basis).(0)
+  ( S.get_basis (S.basis_id basis.typeSize) ).(basis.typeId)
 
-(* If basis has a type of size k, returns the unique flag of size k+1
-on this basis such that the vertex not labeled has indegree k *)
+(* Return the vector corresponding to f0 *)
 let f0 basis =
   let f0 = f0_flag (get_type basis) in
-  Vect.flag ~name:"f0" basis f0
-    
-(* Indicator vector of the in-neighbourhood of v *)
-let in_nbrhd_indicator g v =
-  let res = Array.make g.n false in
-  Array.iter (function (u,w) -> if w=v then res.(u) <- true) g.e;
-  res
-
-    
-(*  *)
+  V.flag ~name:"F0" basis f0
+         
+(* Compute f(sigma) = sum of sigma-sources + (c1-1)F0 - c *)
 let f basis =
-  let x_f0 = Vect.scalar_mul ~name:"(c0 - 1)" (c0 -. 1.) (f0 basis) in
-  let c0_one = Vect.scalar_mul ~name:"c0" c0 (Vect.one basis) in
+  let x_f0 = scalar_mul ~name:"(c1-1)" (c1-.1.) (f0 basis) in
+  let c_one = scalar_mul ~name:"c" c (one basis) in
   let sum = sum_of_sigma_sources basis in
-  sum +~ x_f0 -~ c0_one
+  sum +~ x_f0 -~ c_one   (* f(sigma) *)
 
-let f_inequality basis =
-  at_least (f basis) 0.
-
-(* *)
+(* f(sigma) >= 0 *)
+let f_inequality basis = at_least (f basis) 0.
+           
 let has_dominated_vertex g =
   Common.array_exists ( (==) (g.n - 1) ) (in_degrees g)
 
-let f_inequalities =
+(* Build the inequalities of the type f(sigma) >= 0 *)
+(* for the types sigma with a dominated vertex *)
+let f_rooted_ineqs =
   let res = ref [] in
-  let n = b.flagSize - 1 in
-  let types = S.get_basis (S.basis_id n) in
-  for i = 0 to (Array.length types) - 1 do
-    if has_dominated_vertex types.(i) then
-      let i = f_inequality (S.basis_id ~typeSize:n ~typeId:i (n+1)) in
-      res := i :: !res
-  done;
-  !res
-
-(* ***** new f ***** *)
-    
-(* Returns the list of pairs (id_g, ind),
-for evey graph g and and every vertex v of g of indegree size of g - 1
-where id_g is the identificator of g and ind the in neighbourhood of v *)
-let types_with_pseudo_dominated_vertex size =
-  let b = S.basis_id size in
-  let flags = S.get_basis b in (* graphs of size [size] *)
-  let res = ref [] in (* result container *)
-  for i = 0 to (Array.length flags) - 1 do
-    let indegree = in_degrees flags.(i)
-    and outdegree = out_degrees flags.(i) in
-    for v = 0 to size - 1 do
-      if ( indegree.(v) >= size - 2 ) && ( outdegree.(v) = 0 ) then
-	let in_ind = in_nbrhd_indicator flags.(i) v in
-	res := (i, in_ind) :: !res
+  for n = 2 to b.flagSize - 1 do
+    let types = S.get_basis (S.basis_id n) in
+    for i = 0 to (Array.length types) - 1 do
+      if has_dominated_vertex types.(i) then begin
+        let basis = S.basis_id ~typeSize:n ~typeId:i (n+1) in
+        res := ( f_inequality basis ) :: !res
+       end
     done
   done;
   !res
-
-let indicator ind sigma g =
-  assert (g.n = sigma + 1);
-  let edge_condition (u, v) = not ( u = sigma && ind.(v) ) in
-  if Common.array_for_all edge_condition g.e then 1. else 0.
+   
+(* Build the inequalities of the type [|f(sigma)*F|] >= 0 *)
+let f_inequalities =
+  name_list "3. Sigma-sources"
+    (List.concat
+      (List.map (multiply_and_unlabel b) f_rooted_ineqs))
     
-let new_f typesize (i, ind) =
-  let n = typesize + 1 in
-  let b = S.basis_id ~typeSize:typesize ~typeId:i n in
-  let sum = Vect.make ~name:"pseudo sigma sources" b (indicator ind) in
-  let x_f0 = Vect.scalar_mul ~name:"(c0 - 1)" (c0 -. 1.) (f0 b) in
-  let c0_one = Vect.scalar_mul ~name:"c0" c0 (Vect.one b) in
-  sum +~ x_f0 -~ c0_one
+(* **** Construction of the problem **** *)
 
-    
-let new_f_inequalities n =
-  let typeSize = n - 1 in
-  let types = types_with_pseudo_dominated_vertex typeSize in
-  let make_inequality (i, ind) =
-    at_least (new_f typeSize (i, ind)) 0. in
-  List.map make_inequality types
-
-let new_f_ineq_exp n b =
-  List.concat (List.map (multiply_and_unlabel b) (new_f_inequalities n))
-    
-(* constructing indV and indT *)
-
-let b3 = S.basis_id 3
-let b4 = S.basis_id 4
-
-(*
-let iT = S.id_flag b3 (Digraph.make 3 [|(0,1);(1,2);(0,2)|])
-let iV = S.id_flag b3 (Digraph.make 3 [|(0,2);(1,2)|])
-
-let ind i n =
-  let basis = S.basis_id (n+1) n i in
-  Vect.untype (f basis)
-
-let indV = ind iV 3
-  let indT = ind iT 3*)
-  
-(* flags rooted on one vertex *)
-let b2_1 = S.basis_id ~typeSize:1 ~typeId:0 2
-let b3_1 = S.basis_id ~typeSize:1 ~typeId:0 3
-let alpha = Vect.flag ~name:"alpha" b2_1 (Digraph.make 2 [|(0,1)|])
-let chi = Vect.flag ~name:"chi" b3_1 (Digraph.make 3 [|(0,1);(0,2)|])
-  
-(* ***** forks *********** *)
- 
-(* Building fork *)
-let kappa = Vect.flag ~name:"kappa" b3 (Digraph.make 3 [|(0,1);(0,2)|])
-  
-let sausage_const = 0.88 (*0.88*)
-  
-let fork = (* fork : kappa - (3*(3*c0-1)^2)/sausage *)
-  let x = 3. *. c0 -. 1. in
-  let y = (3. *. x *. x)/.sausage_const in
-  kappa -~ (Vect.scalar_mul y (Vect.one b3))
-
-(* fork inequality : chi - (1/sausage)*(c0 - alpha)^2 *)
-let rooted_fork =
-  let x =
-    (Vect.scalar_mul c0 (Vect.one b2_1)) -~ (Vect.expand b2_1 alpha) in
-  chi -~ ( Vect.scalar_mul (1. /. sausage_const) (x *~ x) )
-    
-(* let _ = Vect.draw rooted_fork
-   let _ = Vect.draw (Vect.untype rooted_fork) *)
-
-  
-(* ************ min deg *************** *)
-let b_1 = { b with typeSize = 1; typeId = 0 }
-
-let alpha_geq_c0 =
-  at_least alpha c0
-
-(* Debugage *)
-let time = ref 0.
-  
-let tic () =
-  time := Sys.time ()
-
-let tac s =
-  Print.p ~color:Print.red (Printf.sprintf "%s time : %.3f\n" s (Sys.time () -. !time))
-
-let _ = tic () 
-
-let alpha_is_c0 =
-  name_list "Outdegree is c0"
-    (List.concat (List.map equality
-		    (multiply_and_unlabel b (alpha_geq_c0))))
-
-let alpha_is_c0_bis =
-  let rec alpha_power = function
-    | 1 -> alpha
-    | n -> alpha *~ (alpha_power (n-1)) in
-  let ineq k =
-    at_least (alpha_power k) (c0 ** (float_of_int k)) in
-  let rec ineqs = function
-    | 0 -> []
-    | k -> (ineq k)::(ineqs (k-1)) in
-  let equalities =
-    List.concat (List.map equality (ineqs (b.flagSize - 1))) in
-  let equalities2 = List.concat (List.map (multiply_and_unlabel b) equalities) in
-  name_list "Outdegree is c0" equalities2
-    
-let _ = tac "Outdegree is c0"
-    
-(* ******* Construction of the problem ********* *)
-let cauchy_schwartz = Solve.all_cs b
-
-let x =
-  let f_ineqs i =
-    let name = Printf.sprintf "New f with flag size %d (type size %d)" i (i-1) in
-    I.name_list name (new_f_ineq_exp i b) in
-  let res = ref [] in
-  for i = 3 to b.flagSize do
-    res := (f_ineqs i) :: !res
-  done;
-  List.concat !res
-
-let y =
-  List.concat (List.map (multiply_and_unlabel b) (f_inequalities))
-              
+(* List of inequalties used *)     
 let inequalities =
   List.concat
     [
-      all_flags_nonnegative b;
-      equality (totalsum b);
-      [ (* expand b (at_least indV 0.);
-	expand b (at_least indT 0.); *)
-	expand b (at_least fork 0.) ];
-      (*     f_inequalities;*)
-      multiply_and_unlabel b (at_least rooted_fork 0.);
-      (* x; *)
-      y;
-      (* alpha_is_c0_bis; *)
-      alpha_is_c0;
+      all_flags_nonnegative b;  (* A flag is non-negative *)
+      [ at_least (one b) 1. ];  (* Sum of flags at least 1 *)
+      outdegree_is_c;           (* Constraint 1. *)
+      [ expand b (fork_ineq) ]; (* Constraint 2. *)
+      f_inequalities;           (* Constraint 3. *)
     ]
 
-let b2 = S.basis_id 2
-let edge = Vect.flag ~name:"edge" b2 (Digraph.make 2 [|(0, 1)|])
-let c5 =  Vect.flag ~name:"c5" {b with flagSize = 5}
-                    (Digraph.make 5 [|(0, 1);(1, 2);(2, 3);(3, 4);(4, 0)|])
-let p5 =  Vect.flag ~name:"p5" {b with flagSize = 5}
-                    (Digraph.make 5 [|(0, 1);(1, 2);(2, 3);(3, 4)|])
-let c4 =  Vect.flag ~name:"c4" {b with flagSize = 4}
-                    (Digraph.make 4 [|(0, 1);(1, 2);(2, 3);(3, 0)|])
-let obj = Vect.expand b (Vect.scalar_mul (-1.) c4)
-
-let filename = Printf.sprintf "ch%f" c0
-  
-let _ = Solve.solve filename cauchy_schwartz inequalities obj
-
-(*  S.basis_id *)
+(* Print the sdp program in CH.sdpa *)
+let _ = Problem.write "CH" inequalities (one b)

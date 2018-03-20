@@ -260,6 +260,24 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
       and v2 = V.sub (square v) (V.multiply w v) in 
       test_eq (Printf.sprintf "Newton %d-%d" k l) v1 v2
 	
+    let test_p2untype sigma k l =
+      let typ = rand_type sigma in
+      let b n = S.basis_id ~typeSize:sigma ~typeId:typ n in
+      let v = random (b k)
+      and w = random (b l) in
+      let v1 = V.untype (V.multiply v w)
+      and v2 = V.multiply_and_unlabel v w in
+      test_eq (Printf.sprintf "P2untype %d|%dx%d" sigma k l) v1 v2
+	
+    let test_p2untype_all sigma k l =
+      let typ = rand_type sigma in
+      let b n = S.basis_id ~typeSize:sigma ~typeId:typ n in
+      let v = random (b k)
+      and w = random (b l) in
+      let v1 = V.untype (V.multiply v w)
+      and v2 = V.multiply_and_unlabel_all [|v|] [|w|] in
+      test_eq (Printf.sprintf "P2untype %d|%dx%d" sigma k l) v1 v2.(0).(0)
+	
     let autotest () =
       test_neutral 0 2 2;
       test_neutral 0 3 2;
@@ -279,6 +297,11 @@ module GenericVectorTest ( C : C ) ( F : Field.S with type t = C.t) ( Flag : Fla
       test_eq2 0 2 2;
       test_eq2 0 3 3;
       test_eq2 2 3 3;
+      test_p2untype 0 2 2;
+      test_p2untype 1 2 3;
+      test_p2untype 2 3 3;
+      test_p2untype_all 1 2 3;
+      test_p2untype_all 2 3 3;
   end
 
 (* **** graph algebra **** *)
@@ -428,13 +451,16 @@ module CNum = struct type t = Num.num let c = Num.compare_num end
 module GraphVectorTest = GenericVectorTest (CNum) (Field.Num) (Graph)
 open GraphVectorTest;;
 
+(*
 autotest ()
+ *)
 
 module TrianglefreeVectorTest = GenericVectorTest (CNum) (Field.Num) (Trianglefree)
 open TrianglefreeVectorTest;;
+
 (*
 autotest ()
-*)
+ *)
 
 (* ***** tests of digraphs ***** *)
 module DigraphAlgebraTest = GenericAlgebraTest (Digraph)

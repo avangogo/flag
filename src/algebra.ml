@@ -67,7 +67,7 @@ struct
     let n = Flag.size g in
     Array.init n (Flag.iso_invariant g)
       
-  (* refine pi according in a canonical (isomorphism-invarriant) way
+  (* refine pi in a canonical (isomorphism-invarriant) way
      as far as it is possible with help of provided invariants of g *)
   let equitable_partition pi g =
     let invariant = precompute_invariant g in
@@ -234,7 +234,7 @@ struct
     g
       
   let normal_form g =
-    normal_form_constraint g (Refine.make (Flag.size g));; 
+    normal_form_constraint g (Refine.make (Flag.size g))
   
   let normal_form_typed sigma g =
     let pi = Refine.make_with_fixed_begin (Flag.size g) sigma in
